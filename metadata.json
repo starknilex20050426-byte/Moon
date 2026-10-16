@@ -1,0 +1,6 @@
+{
+  "name": "Moon - Keep it stylish",
+  "description": "Minimalist luxury clothing and architectural streetwear. Explore curated catalogs, smooth interactive product showcases, bag management, and secure checkout.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
