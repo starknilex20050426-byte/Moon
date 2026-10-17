@@ -230,8 +230,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               </div>
             </div>
 
-            {/* Desktop Inline search */}
-            <div className="hidden sm:flex relative items-center">
+            {/* Desktop Inline search (Mobile search is moved inside menu) */}
+            <div className="hidden md:flex relative items-center">
               {isSearchOpen ? (
                 <div className="flex items-center border border-neutral-300 rounded-full px-3 py-1 bg-white shadow-xs animate-in fade-in duration-150">
                   <Search className="w-3.5 h-3.5 text-neutral-400 mr-2 shrink-0" />
@@ -265,27 +265,18 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </div>
 
-            {/* Mobile search icon trigger */}
-            <button
-              onClick={() => setIsSearchOpen(!isSearchOpen)}
-              className="sm:hidden p-1.5 text-neutral-700 hover:text-neutral-950 rounded-full hover:bg-neutral-100 transition-colors cursor-pointer"
-              aria-label="Search clothing"
-            >
-              <Search className="w-4 h-4" />
-            </button>
-
-            {/* User Account / Sign In Trigger */}
+            {/* Desktop User Account / Sign In Trigger (Mobile is inside menu) */}
             {user ? (
-              <div className="relative" ref={userMenuRef}>
+              <div className="hidden md:block relative" ref={userMenuRef}>
                 <button
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                  className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs font-medium text-neutral-900 bg-white border border-neutral-300/80 rounded-full hover:border-neutral-900 transition-all shadow-xs cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-neutral-900 bg-white border border-neutral-300/80 rounded-full hover:border-neutral-900 transition-all shadow-xs cursor-pointer"
                   aria-label="User account menu"
                 >
-                  <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-neutral-900 text-white flex items-center justify-center text-[10px] font-bold shrink-0">
+                  <div className="w-5 h-5 rounded-full bg-neutral-900 text-white flex items-center justify-center text-[10px] font-bold shrink-0">
                     {userProfile?.displayName ? userProfile.displayName.charAt(0).toUpperCase() : user.email?.charAt(0).toUpperCase() || 'U'}
                   </div>
-                  <span className="hidden sm:inline max-w-[80px] truncate text-left font-semibold">
+                  <span className="max-w-[80px] truncate text-left font-semibold">
                     {userProfile?.displayName?.split(' ')[0] || 'Account'}
                   </span>
                   <ChevronDown className={`w-3 h-3 text-neutral-400 transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`} />
@@ -375,11 +366,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             ) : (
               <button
                 onClick={onOpenAuth}
-                className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-xs font-semibold text-neutral-800 bg-white border border-neutral-300/80 rounded-full hover:bg-neutral-950 hover:text-white transition-all shadow-xs cursor-pointer shrink-0"
+                className="hidden md:flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-neutral-800 bg-white border border-neutral-300/80 rounded-full hover:bg-neutral-950 hover:text-white transition-all shadow-xs cursor-pointer shrink-0"
                 aria-label="Sign In or Register"
               >
                 <UserIcon className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Sign In</span>
+                <span>Sign In</span>
               </button>
             )}
 
@@ -413,44 +404,53 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
 
-        {/* Mobile Full-Width Search Overlay Bar when search is opened on mobile */}
-        {isSearchOpen && (
-          <div className="sm:hidden absolute inset-x-0 top-0 h-16 bg-[#FAF9F6] border-b border-neutral-300 z-50 flex items-center px-4 gap-2 animate-in fade-in slide-in-from-top-1 duration-150">
-            <Search className="w-4 h-4 text-neutral-500 shrink-0" />
+      </div>
+
+      {/* Mobile Navigation Dropdown */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden border-t border-neutral-200 bg-[#FAF9F6] px-4 sm:px-6 py-4 space-y-3.5 max-h-[85vh] overflow-y-auto">
+          {/* 1. Mobile Search Bar */}
+          <div className="relative w-full">
+            <Search className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="Search garments, fabrics, styles..."
-              autoFocus
-              className="flex-1 text-sm bg-transparent focus:outline-none text-neutral-900 placeholder-neutral-400"
+              className="w-full pl-9 pr-9 py-2.5 bg-white border border-neutral-300 rounded-xl text-xs text-neutral-900 placeholder-neutral-400 focus:outline-none focus:border-neutral-900 shadow-2xs"
             />
             {searchQuery && (
               <button
                 onClick={() => onSearchChange('')}
-                className="text-xs text-neutral-400 hover:text-neutral-700 px-1 font-mono"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-700 p-1"
+                aria-label="Clear search"
               >
-                Clear
+                <X className="w-3.5 h-3.5" />
               </button>
             )}
+          </div>
+
+          {/* 2. Direct Mobile Store Admin Portal Button (Owner / Staff) */}
+          {canSeeAdminPortal && (
             <button
               onClick={() => {
-                setIsSearchOpen(false);
-                onSearchChange('');
+                setIsMobileMenuOpen(false);
+                onOpenAdmin();
               }}
-              className="p-1.5 text-neutral-600 hover:text-neutral-950 rounded-md hover:bg-neutral-200/60 cursor-pointer"
-              aria-label="Close search"
+              className="w-full p-3 bg-amber-100 hover:bg-amber-200/90 text-amber-950 border border-amber-300 rounded-xl flex items-center justify-between font-bold text-xs cursor-pointer shadow-xs transition-colors"
             >
-              <X className="w-5 h-5" />
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-amber-700" />
+                <span>Store Admin Portal</span>
+              </div>
+              <span className="text-[10px] px-2 py-0.5 bg-amber-300 text-amber-950 rounded uppercase font-mono font-bold">
+                {isOwner ? 'Owner' : 'Staff'}
+              </span>
             </button>
-          </div>
-        )}
-      </div>
+          )}
 
-      {/* Mobile Navigation Dropdown */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden border-t border-neutral-200 bg-[#FAF9F6] px-6 py-4 space-y-4 max-h-[80vh] overflow-y-auto">
-          <div className="pb-3 border-b border-neutral-200 flex items-center justify-between">
+          {/* 3. Store Currency */}
+          <div className="pb-2 border-b border-neutral-200 flex items-center justify-between">
             <span className="text-xs text-neutral-500 font-medium">Store Currency:</span>
             <div className="flex items-center bg-neutral-100 p-0.5 rounded-full border border-neutral-200 text-xs">
               <button
