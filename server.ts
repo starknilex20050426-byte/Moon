@@ -873,6 +873,16 @@ async function startServer() {
     res.json({ status: 'ok', serverTime: new Date().toISOString() });
   });
 
+  // Direct sync endpoint to download latest compiled assets & source code
+  app.get('/api/latest-build.tar.gz', (_req, res) => {
+    const archivePath = path.join(__dirname, 'public', 'latest-build.tar.gz');
+    if (fs.existsSync(archivePath)) {
+      res.download(archivePath, 'latest-build.tar.gz');
+    } else {
+      res.status(404).send('Archive not found');
+    }
+  });
+
   if (!isProduction) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
