@@ -81,12 +81,12 @@ const DEFAULT_SETTINGS = {
     notifyOwnerOnNewOrder: true,
     emailSubjectTemplate: 'Order Confirmed: #{orderId} — MOON APPAREL',
     smtpConfig: {
-      enabled: false,
-      host: '',
+      enabled: true,
+      host: 'smtp.gmail.com',
       port: 587,
       secure: false,
-      user: '',
-      pass: '',
+      user: 'lerninganimation@gmail.com',
+      pass: 'ndspmtyjcjccvgcv',
     },
   },
 };

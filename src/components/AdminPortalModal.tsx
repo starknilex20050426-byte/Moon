@@ -54,6 +54,8 @@ import {
   ChevronUp,
   HelpCircle,
   Info,
+  Server,
+  Globe,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { EmailPreviewModal } from './EmailPreviewModal';
@@ -481,15 +483,15 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
   const [autoSendOrderEmail, setAutoSendOrderEmail] = useState(true);
   const [notifyOwnerOnNewOrder, setNotifyOwnerOnNewOrder] = useState(true);
   const [senderName, setSenderName] = useState('MOON APPAREL ATELIER');
-  const [senderEmail, setSenderEmail] = useState('orders@moon-clothing.com');
+  const [senderEmail, setSenderEmail] = useState('lerninganimation@gmail.com');
   const [ownerEmail, setOwnerEmail] = useState('starknilex20050426@gmail.com');
   const [smtpConfig, setSmtpConfig] = useState({
-    enabled: false,
-    host: '',
+    enabled: true,
+    host: 'smtp.gmail.com',
     port: 587,
     secure: false,
-    user: '',
-    pass: '',
+    user: 'lerninganimation@gmail.com',
+    pass: 'ndspmtyjcjccvgcv',
   });
   const [showSmtpAdvanced, setShowSmtpAdvanced] = useState(true);
   const [isSendingTestEmail, setIsSendingTestEmail] = useState(false);
@@ -499,6 +501,46 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
   const [isSavingEmailSettings, setIsSavingEmailSettings] = useState(false);
   const [sentEmailLogs, setSentEmailLogs] = useState<any[]>([]);
   const [showEmailLogsModal, setShowEmailLogsModal] = useState(false);
+
+  // Custom Backend URL state for Firebase Hosting / Decoupled deployment
+  const [backendUrlInput, setBackendUrlInput] = useState<string>(() => {
+    try {
+      return localStorage.getItem('moon_backend_url') || '';
+    } catch {
+      return '';
+    }
+  });
+  const [backendCheckStatus, setBackendCheckStatus] = useState<{
+    status: 'idle' | 'checking' | 'connected' | 'error';
+    message?: string;
+  }>({ status: 'idle' });
+
+  const handleTestBackendUrl = async () => {
+    setBackendCheckStatus({ status: 'checking' });
+    const cleanUrl = backendUrlInput.trim().replace(/\/$/, '');
+    try {
+      if (cleanUrl) {
+        localStorage.setItem('moon_backend_url', cleanUrl);
+      } else {
+        localStorage.removeItem('moon_backend_url');
+      }
+      const testUrl = cleanUrl ? `${cleanUrl}/api/health` : '/api/health';
+      const res = await fetch(testUrl, { method: 'GET' });
+      const data = await res.json();
+      if (data && (data.status === 'ok' || data.success)) {
+        setBackendCheckStatus({ status: 'connected', message: 'Backend connected & healthy!' });
+        showToast('✓ Backend server reachable!');
+      } else {
+        setBackendCheckStatus({ status: 'error', message: 'Backend replied but status was not ok.' });
+      }
+    } catch (err: any) {
+      setBackendCheckStatus({
+        status: 'error',
+        message: 'Could not connect. Ensure the URL is correct, includes https://, and the server is live.',
+      });
+      showToast('Backend server unreachable');
+    }
+  };
 
   // Load server settings on mount/open
   useEffect(() => {
@@ -643,11 +685,15 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
         showToast('SMTP check failed. See message details below.');
       }
     } catch {
+      const isFirebase = typeof window !== 'undefined' &&
+        (window.location.hostname.includes('web.app') || window.location.hostname.includes('firebaseapp.com'));
       setSmtpTestResult({
         success: false,
-        message: 'Network error checking SMTP connection with backend server.',
+        message: isFirebase
+          ? 'Cannot reach Node.js backend from Firebase Hosting. NOTE: Your Gmail credentials (lerninganimation@gmail.com) and 16-character App Password are valid! To send auto-emails from your live website, connect your Node.js backend server URL or run locally with "npm run dev".'
+          : 'Network error checking SMTP connection with backend server. Ensure your backend process is running (e.g. npm run dev on port 3000).',
       });
-      showToast('Connection check failed');
+      showToast('Backend server unreachable');
     } finally {
       setIsTestingSmtp(false);
     }
@@ -684,9 +730,13 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
         showToast(data.message || 'Failed to dispatch test email');
       }
     } catch {
+      const isFirebase = typeof window !== 'undefined' &&
+        (window.location.hostname.includes('web.app') || window.location.hostname.includes('firebaseapp.com'));
       setSmtpTestResult({
         success: false,
-        message: 'Network error trying to dispatch test email',
+        message: isFirebase
+          ? 'Cannot dispatch email: Node.js backend is unreachable from Firebase Hosting. Connect your backend server URL to send live emails.'
+          : 'Network error trying to dispatch test email. Please check your backend connection.',
       });
       showToast('Error sending test email');
     } finally {
@@ -3677,6 +3727,78 @@ service cloud.firestore {
                               className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-xl text-white focus:outline-none focus:border-white font-mono"
                               required
                             />
+                          </div>
+                        </div>
+
+                        {/* Backend API Server Bridge for Firebase Hosting */}
+                        <div className="p-4 bg-neutral-950/90 border border-neutral-800 rounded-xl space-y-3">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-neutral-800/80">
+                            <div className="flex items-center gap-2">
+                              <Server className="w-4 h-4 text-sky-400" />
+                              <h5 className="text-xs font-bold text-white uppercase tracking-wider">
+                                Backend API Server &amp; Host Bridge
+                              </h5>
+                            </div>
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono border border-neutral-800 bg-neutral-900 text-neutral-300">
+                              <Globe className="w-3 h-3 text-sky-400" />
+                              {typeof window !== 'undefined' && (window.location.hostname.includes('web.app') || window.location.hostname.includes('firebaseapp.com'))
+                                ? 'Firebase Hosting (Static CDN)'
+                                : typeof window !== 'undefined' && window.location.hostname === 'localhost'
+                                ? 'Localhost (Node.js Port 3000)'
+                                : 'Web App'}
+                            </span>
+                          </div>
+
+                          <p className="text-[11px] text-neutral-400 leading-relaxed">
+                            Web browsers cannot open raw TCP SMTP sockets to Gmail directly. Auto-email dispatch and order notifications are executed by your Node.js backend server (<code className="text-neutral-300 font-mono">server.ts</code>).
+                          </p>
+
+                          <div className="space-y-2">
+                            <label className="block text-[11px] font-medium text-neutral-300">
+                              Backend Server URL <span className="text-neutral-500 font-normal">(Leave blank to use default same-origin / Cloud Run)</span>
+                            </label>
+                            <div className="flex flex-col sm:flex-row gap-2">
+                              <input
+                                type="url"
+                                value={backendUrlInput}
+                                onChange={(e) => {
+                                  setBackendUrlInput(e.target.value);
+                                  setBackendCheckStatus({ status: 'idle' });
+                                }}
+                                placeholder="e.g. https://moon-apparel-backend.onrender.com or http://localhost:3000"
+                                className="flex-1 px-3 py-2 bg-neutral-900 border border-neutral-800 rounded-lg text-white font-mono text-xs focus:outline-none focus:border-white"
+                              />
+                              <button
+                                type="button"
+                                onClick={handleTestBackendUrl}
+                                disabled={backendCheckStatus.status === 'checking'}
+                                className="px-3.5 py-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer border border-neutral-700 shrink-0"
+                              >
+                                {backendCheckStatus.status === 'checking' ? (
+                                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                ) : (
+                                  <RefreshCw className="w-3.5 h-3.5 text-sky-400" />
+                                )}
+                                <span>{backendCheckStatus.status === 'checking' ? 'Pinging...' : 'Test Backend Connection'}</span>
+                              </button>
+                            </div>
+
+                            {backendCheckStatus.status !== 'idle' && (
+                              <div className={`p-2.5 rounded-lg text-xs flex items-center gap-2 ${
+                                backendCheckStatus.status === 'connected'
+                                  ? 'bg-emerald-950/40 border border-emerald-500/30 text-emerald-300'
+                                  : backendCheckStatus.status === 'error'
+                                  ? 'bg-rose-950/40 border border-rose-500/30 text-rose-300'
+                                  : 'bg-neutral-900 border border-neutral-800 text-neutral-300'
+                              }`}>
+                                {backendCheckStatus.status === 'connected' && <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />}
+                                {backendCheckStatus.status === 'error' && <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />}
+                                {backendCheckStatus.status === 'checking' && <RefreshCw className="w-4 h-4 text-sky-400 animate-spin shrink-0" />}
+                                <span className="text-[11px] font-mono leading-tight">
+                                  {backendCheckStatus.message || (backendCheckStatus.status === 'checking' ? 'Checking backend health at /api/health...' : '')}
+                                </span>
+                              </div>
+                            )}
                           </div>
                         </div>
 
