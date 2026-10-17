@@ -54,8 +54,8 @@ export const Hero: React.FC<HeroProps> = ({
   };
 
   return (
-    <section className="relative overflow-hidden bg-[#FAF9F6] border-b border-neutral-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
+    <section className="relative overflow-hidden bg-[#FAF9F6] border-b border-neutral-200 w-full max-w-full">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16 w-full">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           
           {/* Left Column: Brand Copy & Manifesto */}
@@ -160,8 +160,8 @@ export const Hero: React.FC<HeroProps> = ({
       </div>
 
       {/* Value Proposition Bar */}
-      <div className="border-t border-neutral-200 bg-white/60 backdrop-blur-xs py-3.5">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="border-t border-neutral-200 bg-white/60 backdrop-blur-xs py-3.5 w-full max-w-full">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 w-full">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4 text-[11px] sm:text-xs text-neutral-600">
             <div className="flex items-center gap-2 justify-center sm:justify-start">
               <Truck className="w-4 h-4 text-neutral-900 shrink-0" />

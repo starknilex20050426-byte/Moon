@@ -664,20 +664,20 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAF9F6] text-neutral-900 font-sans selection:bg-neutral-900 selection:text-white">
+    <div className="min-h-screen flex flex-col bg-[#FAF9F6] text-neutral-900 font-sans selection:bg-neutral-900 selection:text-white w-full max-w-full overflow-x-hidden relative">
       {/* Top Store Announcement Bar (Single Banner - Configurable in Admin Portal) */}
       {isBannerVisible && (
-        <div className="bg-neutral-950 text-white text-[11px] py-1.5 px-3 sm:px-4 text-center tracking-wider font-medium flex items-center justify-between border-b border-neutral-900 transition-all">
-          <div className="flex-1 flex items-center justify-center gap-2 min-w-0">
+        <div className="bg-neutral-950 text-white text-[11px] py-1.5 px-3 sm:px-4 text-center tracking-wider font-medium flex items-center justify-between border-b border-neutral-900 transition-all w-full max-w-full overflow-hidden">
+          <div className="flex-1 flex items-center justify-center gap-2 min-w-0 overflow-hidden">
             <Sparkles className="w-3 h-3 text-amber-400 shrink-0" />
-            <span className="truncate max-w-2xl sm:max-w-4xl">{announcementText}</span>
+            <span className="truncate max-w-full sm:max-w-4xl">{announcementText}</span>
           </div>
           {canSeeAdminPortal && (
             <button
               onClick={() => setIsAdminPortalOpen(true)}
-              className="text-[10px] text-amber-300 hover:text-amber-200 font-mono tracking-normal underline shrink-0 pl-2 cursor-pointer inline-flex items-center gap-1 font-bold"
+              className="text-[10px] text-amber-300 hover:text-amber-200 font-mono tracking-normal underline shrink-0 pl-2 cursor-pointer inline-flex items-center gap-1 font-bold whitespace-nowrap"
             >
-              <ShieldCheck className="w-3 h-3 text-amber-400" />
+              <ShieldCheck className="w-3 h-3 text-amber-400 shrink-0" />
               <span>Admin ({isOwner ? 'Owner' : 'Staff'})</span>
             </button>
           )}
@@ -945,7 +945,7 @@ export default function App() {
             </div>
 
             {/* CLOTHING TYPES ROW: Triggered by Category option */}
-            <div className="flex items-center gap-2 overflow-x-auto scrollbar-none touch-pan-x pt-1 pb-1 -mx-2 px-2 sm:mx-0 sm:px-0">
+            <div className="flex items-center gap-2 overflow-x-auto scrollbar-none touch-pan-x pt-1 pb-1 w-full max-w-full px-1 sm:px-0">
               <span className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider shrink-0 flex items-center gap-1">
                 <Layers className="w-3 h-3 text-neutral-700" />
                 <span>Clothing Types:</span>

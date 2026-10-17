@@ -50,7 +50,7 @@ export const PRODUCTS: Product[] = [
     originalPriceLKR: 52500,
     priceUSD: 145,
     originalPriceUSD: 175,
-    image: '/src/assets/images/product_oversized_hoodie_1791696489992.jpg',
+    image: hoodieImg,
     sizes: ['XS', 'S', 'M', 'L', 'XL'],
     colors: [
       { name: 'Washed Charcoal', hex: '#232325' },
@@ -80,7 +80,7 @@ export const PRODUCTS: Product[] = [
     clothingType: 'Trousers',
     priceLKR: 55500,
     priceUSD: 185,
-    image: '/src/assets/images/product_tailored_trousers_1791696499631.jpg',
+    image: trousersImg,
     sizes: ['S', 'M', 'L', 'XL'],
     colors: [
       { name: 'Slate Melange', hex: '#4A4E53' },
@@ -111,7 +111,7 @@ export const PRODUCTS: Product[] = [
     originalPriceLKR: 84000,
     priceUSD: 240,
     originalPriceUSD: 280,
-    image: '/src/assets/images/product_bomber_jacket_1791696508991.jpg',
+    image: bomberImg,
     sizes: ['S', 'M', 'L', 'XL'],
     colors: [
       { name: 'Graphite Grey', hex: '#35373A' },
@@ -140,7 +140,7 @@ export const PRODUCTS: Product[] = [
     clothingType: 'Overshirts',
     priceLKR: 48000,
     priceUSD: 160,
-    image: '/src/assets/images/product_linen_overshirt_1791696520506.jpg',
+    image: overshirtImg,
     sizes: ['XS', 'S', 'M', 'L', 'XL'],
     colors: [
       { name: 'Raw Ecru', hex: '#DED6C7' },
@@ -169,7 +169,7 @@ export const PRODUCTS: Product[] = [
     clothingType: 'Sweaters',
     priceLKR: 63000,
     priceUSD: 210,
-    image: '/src/assets/images/product_knit_sweater_1791696532924.jpg',
+    image: sweaterImg,
     sizes: ['S', 'M', 'L', 'XL'],
     colors: [
       { name: 'Oatmeal Melange', hex: '#D3C9B8' },
@@ -198,7 +198,7 @@ export const PRODUCTS: Product[] = [
     clothingType: 'T-Shirts',
     priceLKR: 19500,
     priceUSD: 65,
-    image: '/src/assets/images/product_minimal_tee_1791696564613.jpg',
+    image: teeImg,
     sizes: ['XS', 'S', 'M', 'L', 'XL'],
     colors: [
       { name: 'Chalk White', hex: '#F4F2EC' },
@@ -230,7 +230,7 @@ export const PRODUCTS: Product[] = [
     originalPriceLKR: 66000,
     priceUSD: 195,
     originalPriceUSD: 220,
-    image: '/src/assets/images/product_denim_trouser_1791696574936.jpg',
+    image: denimImg,
     sizes: ['S', 'M', 'L', 'XL'],
     colors: [
       { name: 'Pure Indigo', hex: '#1C2938' },

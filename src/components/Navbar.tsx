@@ -92,9 +92,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-[#FAF9F6]/95 backdrop-blur-md border-b border-neutral-200/80 transition-colors">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between gap-2 sm:gap-4 lg:gap-8 h-16 sm:h-20">
+    <header className="sticky top-0 z-40 bg-[#FAF9F6]/95 backdrop-blur-md border-b border-neutral-200/80 transition-colors w-full max-w-full overflow-hidden sm:overflow-visible">
+      <div className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8 w-full">
+        <div className="flex items-center justify-between gap-1 sm:gap-4 lg:gap-8 h-16 sm:h-20 w-full min-w-0">
           {/* Zone 1: Brand Wordmark */}
           <div className="flex items-center shrink-0">
             <button
@@ -190,31 +190,44 @@ export const Navbar: React.FC<NavbarProps> = ({
           </nav>
 
           {/* Zone 3: Currency Switcher & Shopping Bag & Mobile Controls */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
-            {/* Currency Selector (LKR / USD) */}
-            <div className="flex items-center bg-neutral-100 p-0.5 rounded-full border border-neutral-200/90 text-[11px] sm:text-xs">
+          <div className="flex items-center gap-1 sm:gap-2.5 shrink-0 min-w-0">
+            {/* Currency Selector (LKR / USD): Compact toggle on mobile, dual on tablet+ */}
+            <div className="flex items-center bg-neutral-100 p-0.5 rounded-full border border-neutral-200/90 text-[11px] sm:text-xs shrink-0">
+              {/* Mobile Single Tap Toggle */}
               <button
-                onClick={() => onToggleCurrency('LKR')}
-                className={`px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full font-medium transition-all cursor-pointer whitespace-nowrap ${
-                  currency === 'LKR'
-                    ? 'bg-white text-neutral-950 font-bold shadow-xs'
-                    : 'text-neutral-600 hover:text-neutral-900'
-                }`}
-                title="Sri Lankan Rupee (Default)"
+                onClick={() => onToggleCurrency(currency === 'LKR' ? 'USD' : 'LKR')}
+                className="sm:hidden px-2 py-0.5 rounded-full font-bold bg-white text-neutral-950 shadow-xs flex items-center gap-1 cursor-pointer whitespace-nowrap text-[10px]"
+                title={`Currency: ${currency}. Tap to switch to ${currency === 'LKR' ? 'USD' : 'LKR'}`}
               >
-                <span className="mr-0.5 sm:mr-1">🇱🇰</span><span className="text-[10px] sm:text-xs">LKR</span>
+                <span>{currency === 'LKR' ? '🇱🇰' : '🇺🇸'}</span>
+                <span>{currency}</span>
               </button>
-              <button
-                onClick={() => onToggleCurrency('USD')}
-                className={`px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full font-medium transition-all cursor-pointer whitespace-nowrap ${
-                  currency === 'USD'
-                    ? 'bg-white text-neutral-950 font-bold shadow-xs'
-                    : 'text-neutral-600 hover:text-neutral-900'
-                }`}
-                title="US Dollar"
-              >
-                <span className="mr-0.5 sm:mr-1">🇺🇸</span><span className="text-[10px] sm:text-xs">USD</span>
-              </button>
+
+              {/* Desktop Dual Switcher */}
+              <div className="hidden sm:flex items-center">
+                <button
+                  onClick={() => onToggleCurrency('LKR')}
+                  className={`px-2.5 py-1 rounded-full font-medium transition-all cursor-pointer whitespace-nowrap ${
+                    currency === 'LKR'
+                      ? 'bg-white text-neutral-950 font-bold shadow-xs'
+                      : 'text-neutral-600 hover:text-neutral-900'
+                  }`}
+                  title="Sri Lankan Rupee (Default)"
+                >
+                  <span className="mr-1">🇱🇰</span><span className="text-xs">LKR</span>
+                </button>
+                <button
+                  onClick={() => onToggleCurrency('USD')}
+                  className={`px-2.5 py-1 rounded-full font-medium transition-all cursor-pointer whitespace-nowrap ${
+                    currency === 'USD'
+                      ? 'bg-white text-neutral-950 font-bold shadow-xs'
+                      : 'text-neutral-600 hover:text-neutral-900'
+                  }`}
+                  title="US Dollar"
+                >
+                  <span className="mr-1">🇺🇸</span><span className="text-xs">USD</span>
+                </button>
+              </div>
             </div>
 
             {/* Desktop Inline search */}
@@ -362,7 +375,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             ) : (
               <button
                 onClick={onOpenAuth}
-                className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-xs font-semibold text-neutral-800 bg-white border border-neutral-300/80 rounded-full hover:bg-neutral-950 hover:text-white transition-all shadow-xs cursor-pointer"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-xs font-semibold text-neutral-800 bg-white border border-neutral-300/80 rounded-full hover:bg-neutral-950 hover:text-white transition-all shadow-xs cursor-pointer shrink-0"
                 aria-label="Sign In or Register"
               >
                 <UserIcon className="w-3.5 h-3.5" />
@@ -370,23 +383,10 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             )}
 
-            {/* Direct Mobile Admin Portal Button for Owner & Staff */}
-            {canSeeAdminPortal && (
-              <button
-                onClick={onOpenAdmin}
-                className="md:hidden flex items-center gap-1 px-2 sm:px-2.5 py-1.5 text-xs font-bold text-amber-950 bg-amber-100 hover:bg-amber-200 border border-amber-300 rounded-full transition-colors cursor-pointer shadow-xs shrink-0"
-                aria-label="Open Store Admin Portal"
-                title="Open Store Admin Portal"
-              >
-                <ShieldCheck className="w-3.5 h-3.5 text-amber-700" />
-                <span className="text-[10px] tracking-wider uppercase font-mono font-bold">Admin</span>
-              </button>
-            )}
-
             {/* Shopping Bag Trigger Button */}
             <button
               onClick={onOpenCart}
-              className="relative flex items-center gap-1 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-xs font-medium text-neutral-900 bg-white border border-neutral-300/80 rounded-full hover:bg-neutral-950 hover:text-white transition-all shadow-xs group cursor-pointer"
+              className="relative flex items-center gap-1 sm:gap-2 px-2 sm:px-3.5 py-1.5 sm:py-2 text-xs font-medium text-neutral-900 bg-white border border-neutral-300/80 rounded-full hover:bg-neutral-950 hover:text-white transition-all shadow-xs group cursor-pointer shrink-0"
               aria-label={`Shopping Cart with ${cartCount} items`}
             >
               <ShoppingBag className="w-3.5 sm:w-4 h-3.5 sm:h-4 transition-transform group-hover:scale-105" />
