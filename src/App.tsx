@@ -141,6 +141,40 @@ export default function App() {
     return CATEGORIES_CONFIG;
   });
 
+  // Main Lookbook Campaign Hero Photo & Text (Customizable via Admin Portal)
+  const [heroImage, setHeroImage] = useState<string>(() => {
+    try {
+      const stored = localStorage.getItem('moon_hero_image') || '';
+      if (stored.includes('hero_fashion_lookbook_1791696478904')) {
+        return '';
+      }
+      return stored;
+    } catch {
+      return '';
+    }
+  });
+  const [heroTag, setHeroTag] = useState<string>(() => {
+    try {
+      return localStorage.getItem('moon_hero_tag') || 'Lookbook 2026';
+    } catch {
+      return 'Lookbook 2026';
+    }
+  });
+  const [heroTitle, setHeroTitle] = useState<string>(() => {
+    try {
+      return localStorage.getItem('moon_hero_title') || 'Concrete & Light · Silhouette Study';
+    } catch {
+      return 'Concrete & Light · Silhouette Study';
+    }
+  });
+  const [heroBadge, setHeroBadge] = useState<string>(() => {
+    try {
+      return localStorage.getItem('moon_hero_badge') || 'Drop 01';
+    } catch {
+      return 'Drop 01';
+    }
+  });
+
   // Load persistent store settings and categories from server API
   useEffect(() => {
     apiFetch('/api/settings')
@@ -158,6 +192,23 @@ export default function App() {
           if (data.settings.bankSettings) {
             setBankSettings(data.settings.bankSettings);
             localStorage.setItem('moon_store_bank_settings', JSON.stringify(data.settings.bankSettings));
+          }
+          if (data.settings.heroImage !== undefined) {
+            const cleanHero = (data.settings.heroImage || '').includes('hero_fashion_lookbook_1791696478904') ? '' : data.settings.heroImage;
+            setHeroImage(cleanHero);
+            localStorage.setItem('moon_hero_image', cleanHero);
+          }
+          if (data.settings.heroTag) {
+            setHeroTag(data.settings.heroTag);
+            localStorage.setItem('moon_hero_tag', data.settings.heroTag);
+          }
+          if (data.settings.heroTitle) {
+            setHeroTitle(data.settings.heroTitle);
+            localStorage.setItem('moon_hero_title', data.settings.heroTitle);
+          }
+          if (data.settings.heroBadge) {
+            setHeroBadge(data.settings.heroBadge);
+            localStorage.setItem('moon_hero_badge', data.settings.heroBadge);
           }
         }
       })
@@ -235,6 +286,39 @@ export default function App() {
       }).catch(() => {});
     } catch {}
     showToast('Bank details updated successfully!');
+  };
+
+  const handleUpdateHeroSettings = (updated: {
+    heroImage?: string;
+    heroTag?: string;
+    heroTitle?: string;
+    heroBadge?: string;
+  }) => {
+    if (updated.heroImage !== undefined) {
+      setHeroImage(updated.heroImage);
+      localStorage.setItem('moon_hero_image', updated.heroImage);
+    }
+    if (updated.heroTag !== undefined) {
+      setHeroTag(updated.heroTag);
+      localStorage.setItem('moon_hero_tag', updated.heroTag);
+    }
+    if (updated.heroTitle !== undefined) {
+      setHeroTitle(updated.heroTitle);
+      localStorage.setItem('moon_hero_title', updated.heroTitle);
+    }
+    if (updated.heroBadge !== undefined) {
+      setHeroBadge(updated.heroBadge);
+      localStorage.setItem('moon_hero_badge', updated.heroBadge);
+    }
+
+    try {
+      apiFetch('/api/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated),
+      }).catch(() => {});
+    } catch {}
+    showToast('Main lookbook campaign photo updated live on store!');
   };
 
   // Category and Subcategory Management handlers
@@ -634,6 +718,10 @@ export default function App() {
         {/* Campaign Hero Section */}
         <Hero
           currency={currency}
+          heroImage={heroImage}
+          heroTag={heroTag}
+          heroTitle={heroTitle}
+          heroBadge={heroBadge}
           onExploreClick={() => {
             const el = document.getElementById('catalog-section');
             if (el) el.scrollIntoView({ behavior: 'smooth' });
@@ -1081,6 +1169,11 @@ export default function App() {
         onAddSubcategory={handleAddSubcategory}
         onRemoveSubcategory={handleRemoveSubcategory}
         onUpdateCategories={handleUpdateCategories}
+        heroImage={heroImage}
+        heroTag={heroTag}
+        heroTitle={heroTitle}
+        heroBadge={heroBadge}
+        onUpdateHeroSettings={handleUpdateHeroSettings}
       />
 
       {/* Mobile Floating Admin Shortcut for Store Owner & Staff */}

@@ -383,7 +383,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // 2. Update via Moon server API across all devices
     try {
-      const res = await fetch(`/api/users/${encodeURIComponent(targetUserId)}/role`, {
+      const res = await apiFetch(`/api/users/${encodeURIComponent(targetUserId)}/role`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -545,7 +545,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Update via Moon server API
     try {
-      await fetch(`/api/orders/${encodeURIComponent(orderId)}`, {
+      await apiFetch(`/api/orders/${encodeURIComponent(orderId)}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status, trackingNumber }),

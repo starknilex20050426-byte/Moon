@@ -1,6 +1,14 @@
 import { Product } from '../types';
+import defaultHeroImg from '../assets/images/hero_fashion_lookbook_1791696478904.jpg';
+import hoodieImg from '../assets/images/product_oversized_hoodie_1791696489992.jpg';
+import trousersImg from '../assets/images/product_tailored_trousers_1791696499631.jpg';
+import bomberImg from '../assets/images/product_bomber_jacket_1791696508991.jpg';
+import overshirtImg from '../assets/images/product_linen_overshirt_1791696520506.jpg';
+import sweaterImg from '../assets/images/product_knit_sweater_1791696532924.jpg';
+import teeImg from '../assets/images/product_minimal_tee_1791696564613.jpg';
+import denimImg from '../assets/images/product_denim_trouser_1791696574936.jpg';
 
-export const HERO_IMAGE = '/src/assets/images/hero_fashion_lookbook_1791696478904.jpg';
+export const HERO_IMAGE = defaultHeroImg;
 
 export interface CategoryGroup {
   id: string;

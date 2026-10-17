@@ -71,7 +71,7 @@ import {
   CategoryGroup,
 } from '../types';
 import { formatPrice } from '../utils/currency';
-import { CATEGORIES_CONFIG } from '../data/products';
+import { CATEGORIES_CONFIG, HERO_IMAGE } from '../data/products';
 
 interface AdminPortalModalProps {
   isOpen: boolean;
@@ -93,6 +93,16 @@ interface AdminPortalModalProps {
   onAddSubcategory?: (categoryId: string, subcategoryName: string) => void;
   onRemoveSubcategory?: (categoryId: string, subcategoryName: string) => void;
   onUpdateCategories?: (categories: CategoryGroup[]) => void;
+  heroImage?: string;
+  heroTag?: string;
+  heroTitle?: string;
+  heroBadge?: string;
+  onUpdateHeroSettings?: (settings: {
+    heroImage?: string;
+    heroTag?: string;
+    heroTitle?: string;
+    heroBadge?: string;
+  }) => void;
 }
 
 export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
@@ -115,6 +125,11 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
   onAddSubcategory,
   onRemoveSubcategory,
   onUpdateCategories,
+  heroImage = '',
+  heroTag = 'Lookbook 2026',
+  heroTitle = 'Concrete & Light · Silhouette Study',
+  heroBadge = 'Drop 01',
+  onUpdateHeroSettings,
 }) => {
   const {
     user,
@@ -266,6 +281,137 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
   useEffect(() => {
     setTempAnnouncement(announcementText);
   }, [announcementText]);
+
+  // Hero / Main Lookbook Campaign Photo State
+  const [tempHeroImage, setTempHeroImage] = useState(heroImage || '');
+  const [tempHeroTag, setTempHeroTag] = useState(heroTag || 'Lookbook 2026');
+  const [tempHeroTitle, setTempHeroTitle] = useState(heroTitle || 'Concrete & Light · Silhouette Study');
+  const [tempHeroBadge, setTempHeroBadge] = useState(heroBadge || 'Drop 01');
+  const [isUploadingHeroPhoto, setIsUploadingHeroPhoto] = useState(false);
+  const heroFileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (heroImage !== undefined) setTempHeroImage(heroImage);
+    if (heroTag) setTempHeroTag(heroTag);
+    if (heroTitle) setTempHeroTitle(heroTitle);
+    if (heroBadge) setTempHeroBadge(heroBadge);
+  }, [heroImage, heroTag, heroTitle, heroBadge]);
+
+  const HERO_LOOKBOOK_PRESETS = [
+    {
+      name: 'Concrete Editorial',
+      url: HERO_IMAGE,
+      tag: 'Lookbook 2026',
+      title: 'Concrete & Light · Silhouette Study',
+      badge: 'Drop 01',
+    },
+    {
+      name: 'Artisanal Studio Noir',
+      url: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=1600&q=85',
+      tag: 'Collection 01',
+      title: 'Monochrome Textures & Fluid Tailoring',
+      badge: 'Atelier',
+    },
+    {
+      name: 'Selvedge Denim Craft',
+      url: 'https://images.unsplash.com/photo-1542272604-780c96856592?auto=format&fit=crop&w=1600&q=85',
+      tag: 'Heritage 14oz',
+      title: 'Kojima Mills Selvedge Craft',
+      badge: 'Raw Edition',
+    },
+    {
+      name: 'Architectural Drape',
+      url: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1600&q=85',
+      tag: 'Pure Posture',
+      title: 'Architectural Streetwear Silhouette',
+      badge: 'Limited',
+    },
+    {
+      name: 'Minimalist Ivory Atelier',
+      url: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1600&q=85',
+      tag: 'Autumn Winter',
+      title: 'High-Density Organic Drape',
+      badge: 'Capsule',
+    },
+  ];
+
+  const handleHeroPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      showToast('Please select an image file (JPG, PNG, WebP) from your gallery');
+      return;
+    }
+
+    setIsUploadingHeroPhoto(true);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        // Compress to max 1600px width/height for fast web loading
+        const canvas = document.createElement('canvas');
+        const maxDim = 1600;
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.88);
+          setTempHeroImage(compressedDataUrl);
+          showToast('✓ Photo loaded from gallery! Click "Save & Apply Live to Store" below to publish.');
+        } else {
+          setTempHeroImage(event.target?.result as string);
+        }
+        setIsUploadingHeroPhoto(false);
+      };
+      img.onerror = () => {
+        setIsUploadingHeroPhoto(false);
+        showToast('Failed to process gallery photo');
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveHeroSettings = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (onUpdateHeroSettings) {
+      onUpdateHeroSettings({
+        heroImage: tempHeroImage,
+        heroTag: tempHeroTag,
+        heroTitle: tempHeroTitle,
+        heroBadge: tempHeroBadge,
+      });
+    }
+    showToast('Main lookbook campaign photo updated live on store!');
+  };
+
+  const handleResetHeroPhoto = () => {
+    setTempHeroImage('');
+    setTempHeroTag('Lookbook 2026');
+    setTempHeroTitle('Concrete & Light · Silhouette Study');
+    setTempHeroBadge('Drop 01');
+    if (onUpdateHeroSettings) {
+      onUpdateHeroSettings({
+        heroImage: '',
+        heroTag: 'Lookbook 2026',
+        heroTitle: 'Concrete & Light · Silhouette Study',
+        heroBadge: 'Drop 01',
+      });
+    }
+    showToast('Reset to original lookbook campaign photo');
+  };
 
   // Bank Accounts Settings State (Configurable by Owner & Management)
   const defaultBankDetails: StoreBankSettings = {
@@ -3010,6 +3156,211 @@ service cloud.firestore {
                           >
                             <Check className="w-3.5 h-3.5" />
                             <span>Save Banner Text</span>
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+
+                    {/* MAIN LOOKBOOK CAMPAIGN PHOTO & HERO SHOWCASE CONTROL */}
+                    <div className="p-5 bg-neutral-900 border border-neutral-800 rounded-2xl space-y-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-neutral-800">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <ImageIcon className="w-4 h-4 text-amber-400" />
+                            <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                              Main Campaign Lookbook Photo (Front Showcase)
+                            </h4>
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30 font-mono">
+                              Hero Display
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-neutral-400">
+                            Apply any custom image from your device gallery, select a curated atelier lookbook preset, or enter an image URL.
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => heroFileInputRef.current?.click()}
+                            disabled={isUploadingHeroPhoto}
+                            className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-neutral-950 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm disabled:opacity-50"
+                          >
+                            <Upload className="w-3.5 h-3.5" />
+                            <span>{isUploadingHeroPhoto ? 'Loading...' : 'Upload From Gallery'}</span>
+                          </button>
+                          <input
+                            ref={heroFileInputRef}
+                            type="file"
+                            accept="image/*"
+                            onChange={handleHeroPhotoUpload}
+                            className="hidden"
+                          />
+
+                          {tempHeroImage && (
+                            <button
+                              type="button"
+                              onClick={handleResetHeroPhoto}
+                              className="px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-xl text-xs font-medium transition-colors cursor-pointer"
+                              title="Reset to default campaign photo"
+                            >
+                              Reset
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Live Visual Preview of Hero Photo */}
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-wider text-neutral-400">
+                          <span>Live Store Hero Preview</span>
+                          <span>Aspect Ratio: 16:9 Landscape</span>
+                        </div>
+
+                        <div className="relative aspect-16/9 sm:aspect-21/9 rounded-xl overflow-hidden bg-neutral-950 border border-neutral-800 shadow-inner group">
+                          <img
+                            src={tempHeroImage || HERO_IMAGE}
+                            alt={tempHeroTitle || 'Lookbook Campaign'}
+                            onError={(e) => {
+                              const target = e.currentTarget;
+                              target.onerror = null;
+                              target.src = HERO_IMAGE;
+                            }}
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-102"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
+
+                          {/* Floating Overlay Preview */}
+                          <div className="absolute bottom-3 left-3 right-3 sm:bottom-4 sm:left-4 sm:right-4 flex items-center justify-between text-white pointer-events-none">
+                            <div>
+                              <p className="text-[10px] sm:text-xs uppercase tracking-[0.2em] text-neutral-300 font-mono">
+                                {tempHeroTag || 'Lookbook 2026'}
+                              </p>
+                              <p className="text-xs sm:text-sm font-semibold truncate max-w-sm sm:max-w-md">
+                                {tempHeroTitle || 'Concrete & Light · Silhouette Study'}
+                              </p>
+                            </div>
+                            <span className="text-[10px] font-mono px-2.5 py-0.5 bg-white/20 backdrop-blur-md rounded-full text-white">
+                              {tempHeroBadge || 'Drop 01'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Curated 1-Click Lookbook Presets */}
+                      <div className="space-y-2 pt-1">
+                        <label className="block text-xs font-bold text-neutral-300">
+                          Or Choose from Curated Luxury Lookbook Presets:
+                        </label>
+                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                          {HERO_LOOKBOOK_PRESETS.map((preset, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => {
+                                setTempHeroImage(preset.url);
+                                setTempHeroTag(preset.tag);
+                                setTempHeroTitle(preset.title);
+                                setTempHeroBadge(preset.badge);
+                                showToast(`Selected "${preset.name}". Click "Save & Apply Live" to publish.`);
+                              }}
+                              className={`p-2 rounded-xl border text-left transition-all cursor-pointer flex flex-col gap-1.5 group ${
+                                tempHeroImage === preset.url || (!tempHeroImage && preset.url === HERO_IMAGE)
+                                  ? 'bg-amber-950/30 border-amber-500/60 ring-1 ring-amber-500/30'
+                                  : 'bg-neutral-950/60 border-neutral-800 hover:border-neutral-700'
+                              }`}
+                            >
+                              <div className="aspect-16/10 rounded-lg overflow-hidden bg-neutral-900">
+                                <img
+                                  src={preset.url}
+                                  alt={preset.name}
+                                  className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src =
+                                      'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=400&q=80';
+                                  }}
+                                />
+                              </div>
+                              <span className="text-[10px] font-bold text-neutral-300 truncate group-hover:text-white">
+                                {preset.name}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Manual Image URL & Campaign Caption Inputs */}
+                      <form onSubmit={handleSaveHeroSettings} className="space-y-3 pt-3 border-t border-neutral-800/80">
+                        <div>
+                          <label className="block text-neutral-400 mb-1 text-xs font-medium">
+                            Custom Image Web URL (Optional)
+                          </label>
+                          <input
+                            type="text"
+                            value={tempHeroImage.startsWith('data:') ? '' : tempHeroImage}
+                            onChange={(e) => setTempHeroImage(e.target.value.trim())}
+                            placeholder="https://... (or use 'Upload From Gallery' button above)"
+                            className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-xl text-xs text-white focus:outline-none focus:border-white font-mono"
+                          />
+                          {tempHeroImage.startsWith('data:') && (
+                            <p className="text-[10px] text-emerald-400 mt-1 flex items-center gap-1">
+                              <Check className="w-3 h-3" />
+                              <span>Custom image from your phone/device gallery is currently loaded.</span>
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div>
+                            <label className="block text-neutral-400 mb-1 text-xs font-medium">Campaign Tag</label>
+                            <input
+                              type="text"
+                              value={tempHeroTag}
+                              onChange={(e) => setTempHeroTag(e.target.value)}
+                              placeholder="e.g. Lookbook 2026"
+                              className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-xl text-xs text-white focus:outline-none focus:border-white"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-neutral-400 mb-1 text-xs font-medium">Campaign Title</label>
+                            <input
+                              type="text"
+                              value={tempHeroTitle}
+                              onChange={(e) => setTempHeroTitle(e.target.value)}
+                              placeholder="e.g. Concrete & Light · Silhouette Study"
+                              className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-xl text-xs text-white focus:outline-none focus:border-white"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-neutral-400 mb-1 text-xs font-medium">Capsule Badge</label>
+                            <input
+                              type="text"
+                              value={tempHeroBadge}
+                              onChange={(e) => setTempHeroBadge(e.target.value)}
+                              placeholder="e.g. Drop 01"
+                              className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-xl text-xs text-white focus:outline-none focus:border-white"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="pt-2 flex items-center justify-between">
+                          <button
+                            type="button"
+                            onClick={() => heroFileInputRef.current?.click()}
+                            className="text-xs text-amber-400 hover:text-amber-300 underline font-medium flex items-center gap-1 cursor-pointer"
+                          >
+                            <Camera className="w-3.5 h-3.5" />
+                            <span>Pick another photo from gallery</span>
+                          </button>
+
+                          <button
+                            type="submit"
+                            className="px-5 py-2.5 bg-white text-neutral-950 text-xs font-bold rounded-xl hover:bg-neutral-200 transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                            <span>Save &amp; Apply Live to Store</span>
                           </button>
                         </div>
                       </form>

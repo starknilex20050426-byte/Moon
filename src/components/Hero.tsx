@@ -9,9 +9,50 @@ import { CURRENCY_CONFIG, formatPrice } from '../utils/currency';
 interface HeroProps {
   onExploreClick: () => void;
   currency: Currency;
+  heroImage?: string;
+  heroTag?: string;
+  heroTitle?: string;
+  heroBadge?: string;
 }
 
-export const Hero: React.FC<HeroProps> = ({ onExploreClick, currency }) => {
+export const Hero: React.FC<HeroProps> = ({
+  onExploreClick,
+  currency,
+  heroImage,
+  heroTag,
+  heroTitle,
+  heroBadge,
+}) => {
+  // Normalize legacy/broken path to the bundled Vite asset
+  const resolvedHeroImage = React.useMemo(() => {
+    if (!heroImage) return HERO_IMAGE;
+    if (heroImage.includes('hero_fashion_lookbook_1791696478904')) {
+      return HERO_IMAGE;
+    }
+    return heroImage;
+  }, [heroImage]);
+
+  const [currentSrc, setCurrentSrc] = React.useState(resolvedHeroImage || HERO_IMAGE);
+  const [imageFailed, setImageFailed] = React.useState(false);
+
+  React.useEffect(() => {
+    setCurrentSrc(resolvedHeroImage || HERO_IMAGE);
+    setImageFailed(false);
+  }, [resolvedHeroImage]);
+
+  const handleImageError = () => {
+    if (currentSrc !== HERO_IMAGE && HERO_IMAGE) {
+      setCurrentSrc(HERO_IMAGE);
+      return;
+    }
+    const unsplashFallback = 'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=1600&q=85';
+    if (currentSrc !== unsplashFallback) {
+      setCurrentSrc(unsplashFallback);
+    } else {
+      setImageFailed(true);
+    }
+  };
+
   return (
     <section className="relative overflow-hidden bg-[#FAF9F6] border-b border-neutral-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
@@ -80,23 +121,36 @@ export const Hero: React.FC<HeroProps> = ({ onExploreClick, currency }) => {
             transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
             className="lg:col-span-7 relative group"
           >
-            <div className="relative aspect-4/3 sm:aspect-16/10 lg:aspect-16/9 overflow-hidden rounded-2xl bg-neutral-100 shadow-md">
-              <img
-                src={HERO_IMAGE}
-                alt="Moon Autumn Winter Lookbook Campaign"
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-103"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent pointer-events-none" />
+            <div className="relative aspect-4/3 sm:aspect-16/10 lg:aspect-16/9 overflow-hidden rounded-2xl bg-neutral-900 shadow-md">
+              {imageFailed ? (
+                <div className="w-full h-full bg-gradient-to-br from-neutral-900 via-neutral-950 to-neutral-900 flex items-center justify-center p-6 text-center">
+                  <div className="space-y-2 opacity-70">
+                    <span className="font-serif italic text-3xl sm:text-4xl text-white tracking-widest block font-light">MOON</span>
+                    <p className="text-[10px] sm:text-xs uppercase tracking-[0.3em] text-neutral-400">Atelier Lookbook · Autumn Winter</p>
+                  </div>
+                </div>
+              ) : (
+                <img
+                  src={currentSrc}
+                  alt={heroTitle || 'Moon Autumn Winter Lookbook Campaign'}
+                  onError={handleImageError}
+                  className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-103"
+                />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent pointer-events-none" />
               
               {/* Floating campaign caption */}
               <div className="absolute bottom-3 left-3 right-3 sm:bottom-6 sm:left-6 sm:right-6 flex items-center justify-between text-white pointer-events-none">
                 <div>
-                  <p className="text-[10px] sm:text-xs uppercase tracking-[0.25em] text-neutral-200">Lookbook 2026</p>
-                  <p className="text-xs sm:text-base font-medium">Concrete & Light · Silhouette Study</p>
+                  <p className="text-[10px] sm:text-xs uppercase tracking-[0.25em] text-neutral-200">
+                    {heroTag || 'Lookbook 2026'}
+                  </p>
+                  <p className="text-xs sm:text-base font-medium">
+                    {heroTitle || 'Concrete & Light · Silhouette Study'}
+                  </p>
                 </div>
                 <span className="text-[10px] sm:text-xs font-mono px-2 sm:px-2.5 py-0.5 sm:py-1 bg-white/20 backdrop-blur-md rounded-full text-white">
-                  Drop 01
+                  {heroBadge || 'Drop 01'}
                 </span>
               </div>
             </div>

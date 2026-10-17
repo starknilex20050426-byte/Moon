@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { apiFetch } from '../lib/api';
 import {
   X,
   Mail,
@@ -54,7 +55,7 @@ export const EmailPreviewModal: React.FC<EmailPreviewModalProps> = ({
 
     if (orderId) {
       setIsLoading(true);
-      fetch(`/api/orders/${encodeURIComponent(orderId)}/email-preview`)
+      apiFetch(`/api/orders/${encodeURIComponent(orderId)}/email-preview`)
         .then((res) => res.json())
         .then((data) => {
           if (data.success) {
@@ -94,7 +95,7 @@ export const EmailPreviewModal: React.FC<EmailPreviewModalProps> = ({
         ? `/api/orders/${encodeURIComponent(orderId)}/send-email`
         : '/api/settings/test-email';
 
-      const res = await fetch(endpoint, {
+      const res = await apiFetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ customRecipient: emailRecipient, targetEmail: emailRecipient }),
