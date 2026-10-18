@@ -7,8 +7,15 @@ export function getApiUrl(path: string): string {
     return `${customUrl.replace(/\/$/, '')}${path.startsWith('/') ? path : `/${path}`}`;
   }
 
+  if (typeof window !== 'undefined') {
+    const storedUrl = localStorage.getItem('moon_backend_url');
+    if (storedUrl && storedUrl.trim()) {
+      return `${storedUrl.trim().replace(/\/$/, '')}${path.startsWith('/') ? path : `/${path}`}`;
+    }
+  }
+
   // When hosted on Firebase Hosting (*.web.app or *.firebaseapp.com) without a reverse proxy,
-  // automatically forward API calls to the live Cloud Run backend server.
+  // automatically forward API calls to the live backend server.
   if (
     typeof window !== 'undefined' &&
     (window.location.hostname.includes('web.app') ||

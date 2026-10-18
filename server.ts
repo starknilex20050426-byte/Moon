@@ -16,9 +16,26 @@ const __dirname = path.dirname(__filename);
 const isProduction = process.env.NODE_ENV === 'production';
 const PORT = Number(process.env.PORT) || 3000;
 
-const DATA_DIR = path.join(__dirname, 'data_store');
+const REPO_DATA_DIR = path.join(__dirname, 'data_store');
+const DATA_DIR = process.env.VERCEL ? path.join('/tmp', 'data_store') : REPO_DATA_DIR;
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+// Seed /tmp data store from repo files if running on Vercel serverless
+if (process.env.VERCEL && fs.existsSync(REPO_DATA_DIR)) {
+  try {
+    const files = fs.readdirSync(REPO_DATA_DIR);
+    for (const f of files) {
+      const src = path.join(REPO_DATA_DIR, f);
+      const dest = path.join(DATA_DIR, f);
+      if (!fs.existsSync(dest) && fs.statSync(src).isFile()) {
+        fs.copyFileSync(src, dest);
+      }
+    }
+  } catch (err) {
+    console.warn('Vercel data seed note:', err);
+  }
 }
 
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
@@ -223,8 +240,7 @@ function writeOrders(orders: any[]) {
   }
 }
 
-async function startServer() {
-  const app = express();
+export const app = express();
 
   // CORS middleware to support Firebase Hosting (*.web.app) and custom domains
   app.use((req, res, next) => {
@@ -873,6 +889,7 @@ async function startServer() {
     res.json({ status: 'ok', serverTime: new Date().toISOString() });
   });
 
+async function startServer() {
   if (!isProduction) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -891,4 +908,8 @@ async function startServer() {
   });
 }
 
-startServer();
+if (!process.env.VERCEL) {
+  startServer();
+}
+
+export default app;

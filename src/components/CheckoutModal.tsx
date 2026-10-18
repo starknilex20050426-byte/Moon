@@ -73,7 +73,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     setIsResendingEmail(true);
     setEmailFeedback(null);
     try {
-      const res = await fetch(`/api/orders/${encodeURIComponent(confirmedOrder.orderId)}/send-email`, {
+      const res = await apiFetch(`/api/orders/${encodeURIComponent(confirmedOrder.orderId)}/send-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ customRecipient: confirmedOrder.customer.email }),

@@ -54,6 +54,8 @@ import {
   ChevronUp,
   HelpCircle,
   Info,
+  Server,
+  Globe,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { EmailPreviewModal } from './EmailPreviewModal';
@@ -353,6 +355,52 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
   const [isSavingEmailSettings, setIsSavingEmailSettings] = useState(false);
   const [sentEmailLogs, setSentEmailLogs] = useState<any[]>([]);
   const [showEmailLogsModal, setShowEmailLogsModal] = useState(false);
+
+  // Cloud Backend URL & Hosting Architecture state
+  const [backendUrlInput, setBackendUrlInput] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('moon_backend_url') || '';
+    }
+    return '';
+  });
+  const [isTestingBackendPing, setIsTestingBackendPing] = useState(false);
+  const [backendPingResult, setBackendPingResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  const handleTestAndSaveBackendUrl = async () => {
+    const trimmed = backendUrlInput.trim().replace(/\/$/, '');
+    setIsTestingBackendPing(true);
+    setBackendPingResult(null);
+    try {
+      const pingUrl = trimmed ? `${trimmed}/api/settings` : '/api/settings';
+      const res = await fetch(pingUrl);
+      if (res.ok) {
+        if (trimmed) {
+          localStorage.setItem('moon_backend_url', trimmed);
+        } else {
+          localStorage.removeItem('moon_backend_url');
+        }
+        setBackendPingResult({
+          success: true,
+          message: '✓ Backend connection successful! Live API & auto-emails are verified.',
+        });
+        showToast('✓ Backend connected & saved successfully!');
+      } else {
+        setBackendPingResult({
+          success: false,
+          message: `Backend responded with HTTP ${res.status}. Verify the URL and that your Vercel deployment has finished.`,
+        });
+        showToast('Backend responded with an error');
+      }
+    } catch {
+      setBackendPingResult({
+        success: false,
+        message: `Failed to connect to ${trimmed || 'current origin'}. Check that your Vercel backend deployment is live.`,
+      });
+      showToast('Connection failed');
+    } finally {
+      setIsTestingBackendPing(false);
+    }
+  };
 
   // Load server settings on mount/open
   useEffect(() => {
@@ -3189,6 +3237,119 @@ service cloud.firestore {
                             <p className="text-[10px] text-neutral-400">{editingBankSettings.sampath.accountName}</p>
                             <p className="text-[10px] text-neutral-500">{editingBankSettings.sampath.branch}</p>
                           </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* CLOUD BACKEND & HOSTING ARCHITECTURE */}
+                    <div className="p-5 bg-gradient-to-br from-neutral-900 to-neutral-950 border border-neutral-800 rounded-2xl space-y-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-neutral-800/80">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
+                            <Server className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                              <span>Hosting &amp; Live Backend API Gateway</span>
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-neutral-800 text-neutral-300 font-mono font-normal">
+                                {typeof window !== 'undefined' && window.location.hostname.includes('web.app')
+                                  ? 'Firebase Frontend'
+                                  : typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')
+                                  ? 'Vercel Full-Stack'
+                                  : 'Localhost / Dev'}
+                              </span>
+                            </h4>
+                            <p className="text-[11px] text-neutral-400">
+                              Connect your frontend (Firebase Hosting or Vercel) with your live backend serverless API
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold font-mono ${
+                            backendPingResult?.success || (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app'))
+                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                              : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                          }`}>
+                            {backendPingResult?.success
+                              ? '● BACKEND CONNECTED'
+                              : typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')
+                              ? '● VERCEL ALL-IN-ONE'
+                              : '● CONFIGURE BACKEND URL'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 text-xs">
+                        <div className="p-3 bg-neutral-950/70 border border-neutral-800/80 rounded-xl space-y-2 text-[11px]">
+                          <p className="text-neutral-300 leading-relaxed">
+                            <strong>How this works:</strong> Firebase Hosting only serves static web pages (it does not execute Node.js for email sending without a paid Blaze plan). Vercel runs both static files and your backend API completely free. If you use Firebase Hosting for your frontend, enter your Vercel deployment URL below so your store can communicate with the email engine!
+                          </p>
+                        </div>
+
+                        <div className="space-y-1.5 pt-1">
+                          <label className="block text-neutral-300 font-medium text-xs flex items-center justify-between">
+                            <span className="flex items-center gap-1.5">
+                              <Globe className="w-3.5 h-3.5 text-amber-400" />
+                              Live Backend API URL (Vercel URL)
+                            </span>
+                            {backendUrlInput && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setBackendUrlInput('');
+                                  localStorage.removeItem('moon_backend_url');
+                                  showToast('Reset to default same-origin URL');
+                                }}
+                                className="text-[10px] text-neutral-400 hover:text-white underline cursor-pointer"
+                              >
+                                Clear / Use Default
+                              </button>
+                            )}
+                          </label>
+
+                          <div className="flex flex-col sm:flex-row gap-2">
+                            <input
+                              type="url"
+                              value={backendUrlInput}
+                              onChange={(e) => setBackendUrlInput(e.target.value)}
+                              placeholder="e.g. https://moon-starknilex.vercel.app (Leave empty if hosted directly on Vercel)"
+                              className="flex-1 px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-xl text-white text-xs font-mono focus:outline-none focus:border-white"
+                            />
+                            <button
+                              type="button"
+                              onClick={handleTestAndSaveBackendUrl}
+                              disabled={isTestingBackendPing}
+                              className="px-4 py-2 bg-white hover:bg-neutral-200 text-neutral-950 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0 disabled:opacity-50"
+                            >
+                              {isTestingBackendPing ? (
+                                <>
+                                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                  <span>Testing...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Check className="w-3.5 h-3.5" />
+                                  <span>Save &amp; Test Connection</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+
+                          {backendPingResult && (
+                            <div className={`mt-2 p-2.5 rounded-lg border text-[11px] flex items-center gap-2 font-mono ${
+                              backendPingResult.success
+                                ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300'
+                                : 'bg-rose-950/40 border-rose-500/40 text-rose-300'
+                            }`}>
+                              {backendPingResult.success ? (
+                                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                              ) : (
+                                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                              )}
+                              <span>{backendPingResult.message}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
