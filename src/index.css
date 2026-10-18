@@ -16,10 +16,15 @@ html {
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
   scroll-behavior: smooth;
+  background-color: #FAF9F6;
+  overflow-x: hidden;
+  max-width: 100%;
 }
 
 body {
   overflow-x: hidden;
   width: 100%;
+  max-width: 100%;
+  background-color: #FAF9F6;
   touch-action: manipulation;
 }

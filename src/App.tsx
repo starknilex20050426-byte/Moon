@@ -580,10 +580,10 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAF9F6] text-neutral-900 font-sans selection:bg-neutral-900 selection:text-white">
+    <div className="min-h-screen flex flex-col bg-[#FAF9F6] text-neutral-900 font-sans selection:bg-neutral-900 selection:text-white w-full max-w-full overflow-x-hidden">
       {/* Top Store Announcement Bar (Single Banner - Configurable in Admin Portal) */}
       {isBannerVisible && (
-        <div className="bg-neutral-950 text-white text-[11px] py-1.5 px-3 sm:px-4 text-center tracking-wider font-medium flex items-center justify-between border-b border-neutral-900 transition-all">
+        <div className="bg-neutral-950 text-white text-[11px] py-1.5 px-3 sm:px-4 text-center tracking-wider font-medium flex items-center justify-between border-b border-neutral-900 transition-all w-full max-w-full overflow-hidden">
           <div className="flex-1 flex items-center justify-center gap-2 min-w-0">
             <Sparkles className="w-3 h-3 text-amber-400 shrink-0" />
             <span className="truncate max-w-2xl sm:max-w-4xl">{announcementText}</span>
