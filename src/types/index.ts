@@ -149,6 +149,13 @@ export interface StoreBankSettings {
   sampath: BankAccountDetails;
 }
 
+export interface HeroSettings {
+  imageUrl: string;
+  subtitle: string;
+  title: string;
+  badge: string;
+}
+
 export interface StoreSettings {
   announcementText: string;
   isAnnouncementActive: boolean;
@@ -163,4 +170,5 @@ export interface StoreSettings {
   portalLockedBy?: string;
   bankSettings?: StoreBankSettings;
   emailSettings?: StoreEmailSettings;
+  heroSettings?: HeroSettings;
 }

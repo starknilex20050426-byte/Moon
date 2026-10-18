@@ -3,15 +3,21 @@ import { motion } from 'motion/react';
 import { ArrowDown, Sparkles, ShieldCheck, Truck, RefreshCw } from 'lucide-react';
 import { HERO_IMAGE } from '../data/products';
 
-import { Currency } from '../types';
+import { Currency, HeroSettings } from '../types';
 import { CURRENCY_CONFIG, formatPrice } from '../utils/currency';
 
 interface HeroProps {
   onExploreClick: () => void;
   currency: Currency;
+  heroSettings?: HeroSettings;
 }
 
-export const Hero: React.FC<HeroProps> = ({ onExploreClick, currency }) => {
+export const Hero: React.FC<HeroProps> = ({ onExploreClick, currency, heroSettings }) => {
+  const currentHeroImg = heroSettings?.imageUrl || HERO_IMAGE;
+  const currentSubtitle = heroSettings?.subtitle || 'Lookbook 2026';
+  const currentTitle = heroSettings?.title || 'Concrete & Light · Silhouette Study';
+  const currentBadge = heroSettings?.badge || 'Drop 01';
+
   return (
     <section className="relative overflow-hidden bg-[#FAF9F6] border-b border-neutral-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
@@ -82,9 +88,15 @@ export const Hero: React.FC<HeroProps> = ({ onExploreClick, currency }) => {
           >
             <div className="relative aspect-4/3 sm:aspect-16/10 lg:aspect-16/9 overflow-hidden rounded-2xl bg-neutral-100 shadow-md">
               <img
-                src={HERO_IMAGE}
-                alt="Moon Autumn Winter Lookbook Campaign"
+                src={currentHeroImg}
+                alt={currentTitle}
                 referrerPolicy="no-referrer"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  if (target.src !== HERO_IMAGE) {
+                    target.src = HERO_IMAGE;
+                  }
+                }}
                 className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-103"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent pointer-events-none" />
@@ -92,11 +104,11 @@ export const Hero: React.FC<HeroProps> = ({ onExploreClick, currency }) => {
               {/* Floating campaign caption */}
               <div className="absolute bottom-3 left-3 right-3 sm:bottom-6 sm:left-6 sm:right-6 flex items-center justify-between text-white pointer-events-none">
                 <div>
-                  <p className="text-[10px] sm:text-xs uppercase tracking-[0.25em] text-neutral-200">Lookbook 2026</p>
-                  <p className="text-xs sm:text-base font-medium">Concrete & Light · Silhouette Study</p>
+                  <p className="text-[10px] sm:text-xs uppercase tracking-[0.25em] text-neutral-200">{currentSubtitle}</p>
+                  <p className="text-xs sm:text-base font-medium">{currentTitle}</p>
                 </div>
                 <span className="text-[10px] sm:text-xs font-mono px-2 sm:px-2.5 py-0.5 sm:py-1 bg-white/20 backdrop-blur-md rounded-full text-white">
-                  Drop 01
+                  {currentBadge}
                 </span>
               </div>
             </div>

@@ -71,6 +71,7 @@ import {
   StoreBankSettings,
   BankAccountDetails,
   CategoryGroup,
+  HeroSettings,
 } from '../types';
 import { formatPrice } from '../utils/currency';
 import { CATEGORIES_CONFIG } from '../data/products';
@@ -95,6 +96,8 @@ interface AdminPortalModalProps {
   onAddSubcategory?: (categoryId: string, subcategoryName: string) => void;
   onRemoveSubcategory?: (categoryId: string, subcategoryName: string) => void;
   onUpdateCategories?: (categories: CategoryGroup[]) => void;
+  heroSettings?: HeroSettings;
+  onUpdateHeroSettings?: (settings: Partial<HeroSettings>) => void;
 }
 
 export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
@@ -117,6 +120,8 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
   onAddSubcategory,
   onRemoveSubcategory,
   onUpdateCategories,
+  heroSettings,
+  onUpdateHeroSettings,
 }) => {
   const {
     user,
@@ -365,6 +370,72 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
   });
   const [isTestingBackendPing, setIsTestingBackendPing] = useState(false);
   const [backendPingResult, setBackendPingResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  // Main Hero & Lookbook Campaign Photo Customizer state
+  const [heroImgInput, setHeroImgInput] = useState(heroSettings?.imageUrl || '');
+  const [heroSubtitleInput, setHeroSubtitleInput] = useState(heroSettings?.subtitle || 'Lookbook 2026');
+  const [heroTitleInput, setHeroTitleInput] = useState(heroSettings?.title || 'Concrete & Light · Silhouette Study');
+  const [heroBadgeInput, setHeroBadgeInput] = useState(heroSettings?.badge || 'Drop 01');
+  const heroFileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (heroSettings) {
+      setHeroImgInput(heroSettings.imageUrl || '');
+      setHeroSubtitleInput(heroSettings.subtitle || 'Lookbook 2026');
+      setHeroTitleInput(heroSettings.title || 'Concrete & Light · Silhouette Study');
+      setHeroBadgeInput(heroSettings.badge || 'Drop 01');
+    }
+  }, [heroSettings]);
+
+  const handleSaveHeroSettings = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (onUpdateHeroSettings) {
+      onUpdateHeroSettings({
+        imageUrl: heroImgInput.trim(),
+        subtitle: heroSubtitleInput.trim(),
+        title: heroTitleInput.trim(),
+        badge: heroBadgeInput.trim(),
+      });
+      showToast('Hero lookbook photo & campaign captions saved successfully!');
+    }
+  };
+
+  const handleHeroFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('Image file is too large. Please select an image under 5MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (uploadEvent) => {
+      const result = uploadEvent.target?.result as string;
+      if (result) {
+        setHeroImgInput(result);
+        if (onUpdateHeroSettings) {
+          onUpdateHeroSettings({ imageUrl: result });
+        }
+        showToast('New hero photo selected! Click "Save Hero Photo" to confirm.');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleResetHeroToDefault = () => {
+    setHeroImgInput('');
+    setHeroSubtitleInput('Lookbook 2026');
+    setHeroTitleInput('Concrete & Light · Silhouette Study');
+    setHeroBadgeInput('Drop 01');
+    if (onUpdateHeroSettings) {
+      onUpdateHeroSettings({
+        imageUrl: '',
+        subtitle: 'Lookbook 2026',
+        title: 'Concrete & Light · Silhouette Study',
+        badge: 'Drop 01',
+      });
+    }
+    showToast('Reset hero photo to default brand campaign!');
+  };
 
   const handleTestAndSaveBackendUrl = async () => {
     const trimmed = backendUrlInput.trim().replace(/\/$/, '');
@@ -3058,6 +3129,188 @@ service cloud.firestore {
                           >
                             <Check className="w-3.5 h-3.5" />
                             <span>Save Banner Text</span>
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+
+                    {/* MAIN HERO / LOOKBOOK CAMPAIGN PHOTO & CUSTOMIZER */}
+                    <div className="p-5 bg-gradient-to-br from-neutral-900 to-neutral-950 border border-neutral-800 rounded-2xl space-y-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-neutral-800">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <ImageIcon className="w-4 h-4 text-amber-400" />
+                            <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                              Main Hero &amp; Lookbook Campaign Photo
+                            </h4>
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30 font-mono">
+                              Homepage Showcase
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-neutral-400">
+                            Change the main large showcase photo displayed at the top of your website. Upload your own photography or paste an image URL.
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            type="button"
+                            onClick={handleResetHeroToDefault}
+                            className="px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                            title="Reset to default brand campaign photography"
+                          >
+                            <RefreshCw className="w-3.5 h-3.5" />
+                            <span>Reset to Default</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Live Preview Box of the Hero Photo */}
+                      <div className="space-y-1.5">
+                        <span className="text-[10px] font-mono uppercase tracking-wider text-neutral-400 block">
+                          Current Active Hero Showcase Preview
+                        </span>
+                        <div className="relative aspect-16/9 rounded-xl overflow-hidden bg-neutral-950 border border-neutral-800 shadow-lg">
+                          <img
+                            src={heroImgInput || '/images/hero_fashion_lookbook_1791696478904.jpg'}
+                            alt="Hero Preview"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = '/images/hero_fashion_lookbook_1791696478904.jpg';
+                            }}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
+                          <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white pointer-events-none">
+                            <div>
+                              <p className="text-[9px] uppercase tracking-[0.25em] text-neutral-300 font-mono">{heroSubtitleInput || 'Lookbook 2026'}</p>
+                              <p className="text-xs font-bold truncate max-w-xs">{heroTitleInput || 'Concrete & Light · Silhouette Study'}</p>
+                            </div>
+                            <span className="text-[9px] font-mono px-2 py-0.5 bg-white/20 backdrop-blur-md rounded-full text-white">
+                              {heroBadgeInput || 'Drop 01'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Photo Upload & URL Controls */}
+                      <form onSubmit={handleSaveHeroSettings} className="space-y-4 pt-2 border-t border-neutral-800/80">
+                        {/* Option 1: File Upload */}
+                        <div>
+                          <label className="block text-xs font-bold text-neutral-300 mb-1.5">
+                            Option 1: Upload Photo from Your Device
+                          </label>
+                          <input
+                            type="file"
+                            ref={heroFileInputRef}
+                            onChange={handleHeroFileUpload}
+                            accept="image/*"
+                            className="hidden"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => heroFileInputRef.current?.click()}
+                            className="w-full py-2.5 px-4 bg-neutral-950 hover:bg-neutral-800/90 border border-dashed border-neutral-700 hover:border-amber-400/80 rounded-xl text-xs text-neutral-300 font-medium flex items-center justify-center gap-2 transition-all cursor-pointer"
+                          >
+                            <Upload className="w-4 h-4 text-amber-400" />
+                            <span>Click to Choose Photo from Phone / PC (Max 5MB)</span>
+                          </button>
+                        </div>
+
+                        {/* Option 2: Image URL input */}
+                        <div>
+                          <label className="block text-xs font-bold text-neutral-300 mb-1.5">
+                            Option 2: Or Paste Direct Image URL
+                          </label>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={heroImgInput}
+                              onChange={(e) => setHeroImgInput(e.target.value)}
+                              placeholder="https://example.com/your-campaign-photo.jpg"
+                              className="flex-1 p-2.5 bg-neutral-950 border border-neutral-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400 transition-all font-mono"
+                            />
+                            {heroImgInput && (
+                              <button
+                                type="button"
+                                onClick={() => setHeroImgInput('')}
+                                className="px-3 py-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs rounded-xl cursor-pointer"
+                              >
+                                Clear
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Option 3: Select from Brand Catalog Images */}
+                        {products && products.length > 0 && (
+                          <div>
+                            <label className="block text-xs font-bold text-neutral-300 mb-1.5">
+                              Option 3: Quick-Select from Brand Garment Photography
+                            </label>
+                            <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                              {products.slice(0, 6).map((prod) => (
+                                <button
+                                  key={prod.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setHeroImgInput(prod.image);
+                                    setHeroTitleInput(`${prod.name} · Signature Study`);
+                                  }}
+                                  className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
+                                    heroImgInput === prod.image
+                                      ? 'border-amber-400 ring-2 ring-amber-400/30'
+                                      : 'border-neutral-800 hover:border-neutral-600 opacity-70 hover:opacity-100'
+                                  }`}
+                                  title={prod.name}
+                                >
+                                  <img src={prod.image} alt={prod.name} className="w-full h-full object-cover" />
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Captions & Subtitles */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-neutral-800/80 text-xs">
+                          <div>
+                            <label className="block text-neutral-400 mb-1 font-medium">Subtitle / Year</label>
+                            <input
+                              type="text"
+                              value={heroSubtitleInput}
+                              onChange={(e) => setHeroSubtitleInput(e.target.value)}
+                              placeholder="e.g. Lookbook 2026"
+                              className="w-full p-2.5 bg-neutral-950 border border-neutral-800 rounded-xl text-xs text-white focus:outline-none focus:border-white font-sans"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-neutral-400 mb-1 font-medium">Headline / Collection Theme</label>
+                            <input
+                              type="text"
+                              value={heroTitleInput}
+                              onChange={(e) => setHeroTitleInput(e.target.value)}
+                              placeholder="e.g. Concrete &amp; Light · Silhouette Study"
+                              className="w-full p-2.5 bg-neutral-950 border border-neutral-800 rounded-xl text-xs text-white focus:outline-none focus:border-white font-sans"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-neutral-400 mb-1 font-medium">Badge / Drop Tag</label>
+                            <input
+                              type="text"
+                              value={heroBadgeInput}
+                              onChange={(e) => setHeroBadgeInput(e.target.value)}
+                              placeholder="e.g. Drop 01"
+                              className="w-full p-2.5 bg-neutral-950 border border-neutral-800 rounded-xl text-xs text-white focus:outline-none focus:border-white font-sans"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-end pt-2">
+                          <button
+                            type="submit"
+                            className="px-5 py-2.5 bg-white text-neutral-950 text-xs font-bold rounded-xl hover:bg-neutral-200 transition-colors cursor-pointer flex items-center gap-2 shadow-sm"
+                          >
+                            <Check className="w-4 h-4 text-emerald-600" />
+                            <span>Save Hero Photo &amp; Captions</span>
                           </button>
                         </div>
                       </form>

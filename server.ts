@@ -106,6 +106,12 @@ const DEFAULT_SETTINGS = {
       pass: '',
     },
   },
+  heroSettings: {
+    imageUrl: '',
+    subtitle: 'Lookbook 2026',
+    title: 'Concrete & Light · Silhouette Study',
+    badge: 'Drop 01',
+  },
 };
 
 // Initial seed if files don't exist
@@ -191,6 +197,10 @@ function readSettings(): any {
           ...DEFAULT_SETTINGS.emailSettings.smtpConfig,
           ...(parsed.emailSettings?.smtpConfig || {}),
         },
+      },
+      heroSettings: {
+        ...DEFAULT_SETTINGS.heroSettings,
+        ...(parsed.heroSettings || {}),
       },
     };
   } catch (err) {

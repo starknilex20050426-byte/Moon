@@ -1,6 +1,7 @@
 import { Product } from '../types';
+import defaultHeroImage from '../assets/images/hero_fashion_lookbook_1791696478904.jpg';
 
-export const HERO_IMAGE = '/src/assets/images/hero_fashion_lookbook_1791696478904.jpg';
+export const HERO_IMAGE = defaultHeroImage || '/images/hero_fashion_lookbook_1791696478904.jpg';
 
 export interface CategoryGroup {
   id: string;

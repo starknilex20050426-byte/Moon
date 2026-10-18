@@ -20,7 +20,7 @@ import {
   ChevronDown,
   ShieldCheck,
 } from 'lucide-react';
-import { Product, CartItem, OrderConfirmation, Currency, PromoCode, StoreBankSettings, CategoryGroup } from './types';
+import { Product, CartItem, OrderConfirmation, Currency, PromoCode, StoreBankSettings, CategoryGroup, HeroSettings } from './types';
 import { PRODUCTS, CATEGORIES_CONFIG } from './data/products';
 import { CURRENCY_CONFIG, formatPrice, getProductPrice } from './utils/currency';
 import { Navbar } from './components/Navbar';
@@ -141,6 +141,34 @@ export default function App() {
     return CATEGORIES_CONFIG;
   });
 
+  // Main Hero Lookbook Campaign Settings (Configurable in Admin Portal)
+  const [heroSettings, setHeroSettings] = useState<HeroSettings>(() => {
+    const defaultHeroSettings: HeroSettings = {
+      imageUrl: '',
+      subtitle: 'Lookbook 2026',
+      title: 'Concrete & Light · Silhouette Study',
+      badge: 'Drop 01',
+    };
+    try {
+      const saved = localStorage.getItem('moon_hero_settings');
+      return saved ? { ...defaultHeroSettings, ...JSON.parse(saved) } : defaultHeroSettings;
+    } catch {
+      return defaultHeroSettings;
+    }
+  });
+
+  const handleUpdateHeroSettings = (newSettings: Partial<HeroSettings>) => {
+    setHeroSettings((prev) => {
+      const updated = { ...prev, ...newSettings };
+      try {
+        localStorage.setItem('moon_hero_settings', JSON.stringify(updated));
+      } catch (e) {
+        console.error('Failed to save hero settings:', e);
+      }
+      return updated;
+    });
+  };
+
   // Load persistent store settings and categories from server API
   useEffect(() => {
     apiFetch('/api/settings')
@@ -158,6 +186,10 @@ export default function App() {
           if (data.settings.bankSettings) {
             setBankSettings(data.settings.bankSettings);
             localStorage.setItem('moon_store_bank_settings', JSON.stringify(data.settings.bankSettings));
+          }
+          if (data.settings.heroSettings) {
+            setHeroSettings((prev) => ({ ...prev, ...data.settings.heroSettings }));
+            localStorage.setItem('moon_hero_settings', JSON.stringify(data.settings.heroSettings));
           }
         }
       })
@@ -634,6 +666,7 @@ export default function App() {
         {/* Campaign Hero Section */}
         <Hero
           currency={currency}
+          heroSettings={heroSettings}
           onExploreClick={() => {
             const el = document.getElementById('catalog-section');
             if (el) el.scrollIntoView({ behavior: 'smooth' });
@@ -1081,6 +1114,8 @@ export default function App() {
         onAddSubcategory={handleAddSubcategory}
         onRemoveSubcategory={handleRemoveSubcategory}
         onUpdateCategories={handleUpdateCategories}
+        heroSettings={heroSettings}
+        onUpdateHeroSettings={handleUpdateHeroSettings}
       />
 
       {/* Mobile Floating Admin Shortcut for Store Owner & Staff */}
