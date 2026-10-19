@@ -4,12 +4,13 @@ import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 export const firebaseConfig = {
-  apiKey: "AIzaSyA8QFOL7A4WKMHexTIPKXCujcuBczPTrTc",
-  authDomain: "moon---keep-it-stylish.firebaseapp.com",
-  projectId: "moon---keep-it-stylish",
-  storageBucket: "moon---keep-it-stylish.firebasestorage.app",
-  messagingSenderId: "603421425615",
-  appId: "1:603421425615:web:a3402c5cd7d5860b961cba"
+  apiKey: "AIzaSyCLgxgQdHzEg0cqN76vVDCKt-dKbppp5vU",
+  authDomain: "moon-apparel.firebaseapp.com",
+  projectId: "moon-apparel",
+  storageBucket: "moon-apparel.firebasestorage.app",
+  messagingSenderId: "1099240286722",
+  appId: "1:1099240286722:web:14f26e918f4c676715951b",
+  measurementId: "G-J2TBLPH53F"
 };
 
 // Initialize Firebase safely
