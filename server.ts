@@ -264,6 +264,25 @@ export const app = express();
 
   app.use(express.json({ limit: '10mb' }));
 
+  // Normalize API route paths (supports both /api/xyz and /xyz when rewritten on Vercel)
+  app.use((req, _res, next) => {
+    const matched = (req.headers['x-matched-path'] as string) || '';
+    if (matched.startsWith('/api')) {
+      req.url = matched;
+    } else if (
+      req.url.startsWith('/settings') ||
+      req.url.startsWith('/users') ||
+      req.url.startsWith('/orders') ||
+      req.url.startsWith('/categories') ||
+      req.url.startsWith('/products') ||
+      req.url.startsWith('/health') ||
+      req.url.startsWith('/upload')
+    ) {
+      req.url = `/api${req.url}`;
+    }
+    next();
+  });
+
   // API Routes
   app.get('/api/users', (_req, res) => {
     const users = readUsers();

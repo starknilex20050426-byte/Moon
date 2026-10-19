@@ -598,6 +598,23 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
           saveOnSuccess: true,
         }),
       });
+
+      if (!res.ok) {
+        let errMessage = `HTTP ${res.status}`;
+        try {
+          const errData = await res.json();
+          if (errData.message) errMessage = errData.message;
+        } catch {
+          // not JSON
+        }
+        setSmtpTestResult({
+          success: false,
+          message: `Backend API responded with ${errMessage}. Verify that the Live Backend API URL is saved and Vercel deployment has finished building.`,
+        });
+        showToast(`SMTP check failed (${res.status})`);
+        return;
+      }
+
       const data = await res.json();
       setSmtpTestResult({ success: data.success, message: data.message });
       if (data.success) {
@@ -618,7 +635,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
     } catch {
       setSmtpTestResult({
         success: false,
-        message: 'Network error checking SMTP connection with backend server.',
+        message: 'Network error checking SMTP connection with backend server. Check that your Live Backend API URL in Store Settings is configured.',
       });
       showToast('Connection check failed');
     } finally {
@@ -648,6 +665,23 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
           saveConfig: true,
         }),
       });
+
+      if (!res.ok) {
+        let errMessage = `HTTP ${res.status}`;
+        try {
+          const errData = await res.json();
+          if (errData.message) errMessage = errData.message;
+        } catch {
+          // not JSON
+        }
+        setSmtpTestResult({
+          success: false,
+          message: `Backend API responded with ${errMessage}. Please verify your Backend API URL and Vercel deployment.`,
+        });
+        showToast(`Send failed (${res.status})`);
+        return;
+      }
+
       const data = await res.json();
       setSmtpTestResult({ success: data.success, message: data.message });
       if (data.success) {
@@ -659,7 +693,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
     } catch {
       setSmtpTestResult({
         success: false,
-        message: 'Network error trying to dispatch test email',
+        message: 'Network error trying to dispatch test email. Check your Live Backend API URL configuration.',
       });
       showToast('Error sending test email');
     } finally {
@@ -3533,11 +3567,26 @@ service cloud.firestore {
                         </div>
                       </div>
 
-                      <div className="space-y-2 text-xs">
+                        <div className="space-y-2 text-xs">
                         <div className="p-3 bg-neutral-950/70 border border-neutral-800/80 rounded-xl space-y-2 text-[11px]">
                           <p className="text-neutral-300 leading-relaxed">
-                            <strong>How this works:</strong> Firebase Hosting only serves static web pages (it does not execute Node.js for email sending without a paid Blaze plan). Vercel runs both static files and your backend API completely free. If you use Firebase Hosting for your frontend, enter your Vercel deployment URL below so your store can communicate with the email engine!
+                            <strong>What to enter here:</strong> Copy the full website link from your browser's address bar (e.g. <span className="text-amber-400 font-mono">https://stylish-five.vercel.app</span>) and paste it into the box below, or click the <strong>Auto-Fill Current URL</strong> button. Then click <strong>Save &amp; Test Connection</strong>.
                           </p>
+                          {typeof window !== 'undefined' && window.location.origin && (
+                            <div className="flex items-center gap-2 pt-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setBackendUrlInput(window.location.origin);
+                                  showToast(`Auto-filled: ${window.location.origin}`);
+                                }}
+                                className="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-lg text-[11px] font-medium flex items-center gap-1.5 transition-all cursor-pointer"
+                              >
+                                <Globe className="w-3 h-3 text-amber-400" />
+                                <span>Auto-Fill Current URL ({window.location.origin})</span>
+                              </button>
+                            </div>
+                          )}
                         </div>
 
                         <div className="space-y-1.5 pt-1">
@@ -3566,7 +3615,7 @@ service cloud.firestore {
                               type="url"
                               value={backendUrlInput}
                               onChange={(e) => setBackendUrlInput(e.target.value)}
-                              placeholder="e.g. https://moon-starknilex.vercel.app (Leave empty if hosted directly on Vercel)"
+                              placeholder={typeof window !== 'undefined' ? `${window.location.origin}` : 'https://your-domain.vercel.app'}
                               className="flex-1 px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-xl text-white text-xs font-mono focus:outline-none focus:border-white"
                             />
                             <button

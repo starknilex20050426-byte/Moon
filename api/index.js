@@ -35953,6 +35953,15 @@ app.use((req, res, next) => {
   next();
 });
 app.use(import_express.default.json({ limit: "10mb" }));
+app.use((req, _res, next) => {
+  const matched = req.headers["x-matched-path"] || "";
+  if (matched.startsWith("/api")) {
+    req.url = matched;
+  } else if (req.url.startsWith("/settings") || req.url.startsWith("/users") || req.url.startsWith("/orders") || req.url.startsWith("/categories") || req.url.startsWith("/products") || req.url.startsWith("/health") || req.url.startsWith("/upload")) {
+    req.url = `/api${req.url}`;
+  }
+  next();
+});
 app.get("/api/users", (_req, res) => {
   const users = readUsers();
   res.json({ success: true, users });
