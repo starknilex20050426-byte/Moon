@@ -1,5 +1,4 @@
 import express from 'express';
-import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -9,7 +8,7 @@ import {
   generateOrderEmailHtml,
   generateOrderEmailText,
   verifySmtpConnection,
-} from './server/emailService.js';
+} from './server/emailService.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -901,6 +900,7 @@ export const app = express();
 
 async function startServer() {
   if (!isProduction) {
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
