@@ -70,7 +70,10 @@ export function generateOrderEmailHtml(order: any, settings?: any): string {
 
   const itemsHtml = items.map((item: any) => {
     const p = item.product || {};
-    const imgUrl = p.image || 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=300&q=80';
+    let imgUrl = p.image || '';
+    if (!imgUrl.startsWith('http://') && !imgUrl.startsWith('https://')) {
+      imgUrl = 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=300&q=80';
+    }
     const unitPrice = currency === 'USD' ? (p.priceUSD || 0) : (p.priceLKR || 0);
     const lineTotal = unitPrice * (item.quantity || 1);
     const colorHex = item.color?.hex || '#1a1a1a';
@@ -530,7 +533,9 @@ export async function sendOrderConfirmationEmail(order: any, settings?: any): Pr
         text: textContent,
         headers: {
           'X-Entity-Ref-ID': order.orderId,
-          'Importance': 'high',
+          'Auto-Submitted': 'auto-generated',
+          'X-Auto-Response-Suppress': 'All',
+          'List-Unsubscribe': `<mailto:${fromAddress}?subject=unsubscribe>`,
         },
       };
 
@@ -563,7 +568,9 @@ export async function sendOrderConfirmationEmail(order: any, settings?: any): Pr
             text: textContent,
             headers: {
               'X-Entity-Ref-ID': order.orderId,
-              'Importance': 'high',
+              'Auto-Submitted': 'auto-generated',
+              'X-Auto-Response-Suppress': 'All',
+              'List-Unsubscribe': `<mailto:${fromAddress}?subject=unsubscribe>`,
             },
           };
           if (notifyOwner && ownerEmail && ownerEmail.toLowerCase() !== recipient.toLowerCase()) {
@@ -606,7 +613,9 @@ export async function sendOrderConfirmationEmail(order: any, settings?: any): Pr
         text: textContent,
         headers: {
           'X-Entity-Ref-ID': order.orderId,
-          'Importance': 'high',
+          'Auto-Submitted': 'auto-generated',
+          'X-Auto-Response-Suppress': 'All',
+          'List-Unsubscribe': `<mailto:${fromAddress}?subject=unsubscribe>`,
         },
       });
       messageId = info.messageId || messageId;

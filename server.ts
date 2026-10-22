@@ -98,7 +98,7 @@ const DEFAULT_SETTINGS = {
   emailSettings: {
     autoSendOrderEmail: true,
     senderName: 'MOON APPAREL ATELIER',
-    senderEmail: 'orders@moon-clothing.com',
+    senderEmail: 'lerninganimation@gmail.com',
     ownerNotificationEmail: OWNER_EMAIL,
     notifyOwnerOnNewOrder: true,
     emailSubjectTemplate: 'Order Confirmed: #{orderId} — MOON APPAREL',
@@ -562,10 +562,12 @@ export const app = express();
           ...(result.suggestedPort ? { port: result.suggestedPort } : {}),
           ...(result.suggestedSecure !== undefined ? { secure: result.suggestedSecure } : {}),
         };
+        const cleanUser = (smtpConfig.user || '').trim();
         const updated = {
           ...current,
           emailSettings: {
             ...(current.emailSettings || {}),
+            senderEmail: cleanUser.toLowerCase().endsWith('@gmail.com') ? cleanUser : (current.emailSettings?.senderEmail || cleanUser),
             smtpConfig: updatedConfig,
           },
         };

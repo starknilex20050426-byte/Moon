@@ -342,7 +342,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
   const [autoSendOrderEmail, setAutoSendOrderEmail] = useState(true);
   const [notifyOwnerOnNewOrder, setNotifyOwnerOnNewOrder] = useState(true);
   const [senderName, setSenderName] = useState('MOON APPAREL ATELIER');
-  const [senderEmail, setSenderEmail] = useState('orders@moon-clothing.com');
+  const [senderEmail, setSenderEmail] = useState('lerninganimation@gmail.com');
   const [ownerEmail, setOwnerEmail] = useState('starknilex20050426@gmail.com');
   const [smtpConfig, setSmtpConfig] = useState({
     enabled: false,

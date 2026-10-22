@@ -1,0 +1,44 @@
+{
+  "isBannerVisible": true,
+  "bannerText": "🇱🇰 Island-Wide Express Courier across Sri Lanka · Free Island-Wide Delivery on orders over LKR 50,000 / $160",
+  "bankSettings": {
+    "commercial": {
+      "bankName": "Commercial Bank of Ceylon",
+      "accountName": "MOON APPAREL (PVT) LTD",
+      "accountNumber": "1000 4829 1042",
+      "branch": "Cinnamon Gardens Branch (Colombo 07)",
+      "swift": "CCEYLKLX",
+      "bankCode": "7056"
+    },
+    "sampath": {
+      "bankName": "Sampath Bank PLC",
+      "accountName": "MOON APPAREL (PVT) LTD",
+      "accountNumber": "0192 1004 8831",
+      "branch": "Colombo Super Branch",
+      "swift": "SAMPKLX",
+      "bankCode": "7278"
+    }
+  },
+  "emailSettings": {
+    "autoSendOrderEmail": true,
+    "senderName": "MOON APPAREL ATELIER",
+    "senderEmail": "lerninganimation@gmail.com",
+    "ownerNotificationEmail": "starknilex20050426@gmail.com",
+    "notifyOwnerOnNewOrder": true,
+    "emailSubjectTemplate": "Order Confirmed: #{orderId} — MOON APPAREL",
+    "smtpConfig": {
+      "enabled": false,
+      "host": "",
+      "port": 587,
+      "secure": false,
+      "user": "",
+      "pass": ""
+    }
+  },
+  "heroSettings": {
+    "imageUrl": "",
+    "subtitle": "Lookbook 2026",
+    "title": "Concrete & Light · Silhouette Study",
+    "badge": "Drop 01"
+  }
+}
