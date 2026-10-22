@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Mail, Lock, User as UserIcon, Phone, AlertCircle, ArrowRight, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { X, Mail, Lock, User as UserIcon, Phone, AlertCircle, ArrowRight, CheckCircle2, ShieldCheck, Copy, Globe } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 interface AuthModalProps {
@@ -29,9 +29,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [isUnauthorizedDomain, setIsUnauthorizedDomain] = useState(false);
+  const [copiedDomain, setCopiedDomain] = useState(false);
 
   const formatFirebaseError = (err: any) => {
     const code = err?.code || '';
+    if (code.includes('unauthorized-domain')) {
+      setIsUnauthorizedDomain(true);
+      return 'Google Sign-In is not yet authorized for this domain. You can create an account or sign in directly with Email & Password below!';
+    }
+    setIsUnauthorizedDomain(false);
     if (code.includes('user-not-found') || code.includes('wrong-password') || code.includes('invalid-credential')) {
       return 'Incorrect email or password. Please verify and try again.';
     }
@@ -158,6 +165,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   onClick={() => {
                     setMode('signin');
                     setErrorMsg(null);
+                    setIsUnauthorizedDomain(false);
                   }}
                   className={`py-2 rounded-lg transition-all cursor-pointer ${
                     mode === 'signin'
@@ -172,6 +180,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   onClick={() => {
                     setMode('signup');
                     setErrorMsg(null);
+                    setIsUnauthorizedDomain(false);
                   }}
                   className={`py-2 rounded-lg transition-all cursor-pointer ${
                     mode === 'signup'
@@ -186,12 +195,52 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
             {/* Body */}
             <div className="px-6 pb-6 sm:px-8 sm:pb-8">
-              {errorMsg && (
+              {isUnauthorizedDomain ? (
+                <div className="mb-4 p-3.5 bg-amber-50/90 border border-amber-300 rounded-xl text-left space-y-2.5 text-xs text-amber-950 animate-in fade-in">
+                  <div className="flex items-start gap-2 font-semibold text-amber-900">
+                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    <span>Google Sign-In Needs Domain Authorization</span>
+                  </div>
+                  <p className="text-[11px] text-amber-800 leading-relaxed">
+                    Google popup sign-in requires this domain (<code>{typeof window !== 'undefined' ? window.location.hostname : 'your domain'}</code>) to be whitelisted in Firebase Console.
+                  </p>
+
+                  <div className="p-2.5 bg-white/90 rounded-lg border border-amber-200 space-y-1 text-[11px]">
+                    <div className="font-semibold text-neutral-900 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>Instant Solution: Use Email &amp; Password Below</span>
+                    </div>
+                    <p className="text-neutral-600">
+                      Email and password accounts work immediately on all domains with zero setup. Simply fill in your details below and click {mode === 'signin' ? 'Sign In' : 'Create Account'}.
+                    </p>
+                  </div>
+
+                  <div className="pt-1 flex items-center justify-between gap-2 border-t border-amber-200/60">
+                    <span className="text-[10px] text-neutral-600 font-mono truncate">
+                      Domain: {typeof window !== 'undefined' ? window.location.hostname : ''}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (typeof window !== 'undefined' && navigator.clipboard) {
+                          navigator.clipboard.writeText(window.location.hostname);
+                          setCopiedDomain(true);
+                          setTimeout(() => setCopiedDomain(false), 2000);
+                        }
+                      }}
+                      className="px-2.5 py-1 bg-amber-100 hover:bg-amber-200 text-amber-900 font-semibold rounded text-[10px] flex items-center gap-1 transition-all cursor-pointer shrink-0"
+                    >
+                      <Copy className="w-3 h-3" />
+                      <span>{copiedDomain ? 'Copied!' : 'Copy Domain'}</span>
+                    </button>
+                  </div>
+                </div>
+              ) : errorMsg ? (
                 <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2 text-xs text-red-700 animate-in fade-in">
                   <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
                   <span>{errorMsg}</span>
                 </div>
-              )}
+              ) : null}
 
               {successMsg && (
                 <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-2 text-xs text-emerald-800 animate-in fade-in">
