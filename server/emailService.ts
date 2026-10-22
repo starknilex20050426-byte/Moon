@@ -10,6 +10,23 @@ const REPO_DATA_DIR = fs.existsSync(path.join(process.cwd(), 'data_store'))
   : path.join(__dirname, '..', 'data_store');
 const DATA_DIR = process.env.VERCEL ? path.join('/tmp', 'data_store') : REPO_DATA_DIR;
 const SENT_EMAILS_FILE = path.join(DATA_DIR, 'sent_emails.json');
+const PUBLIC_IMAGES_DIR = fs.existsSync(path.join(process.cwd(), 'public', 'images'))
+  ? path.join(process.cwd(), 'public', 'images')
+  : path.join(__dirname, '..', 'public', 'images');
+
+export function resolveProductImageUrl(rawImage?: string): string {
+  if (!rawImage) {
+    return 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=300&q=80';
+  }
+  if (rawImage.startsWith('http://') || rawImage.startsWith('https://')) {
+    return rawImage;
+  }
+  const filename = rawImage.split('/').pop()?.split('?')[0];
+  if (filename) {
+    return `https://moon-apparel.vercel.app/images/${filename}`;
+  }
+  return 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=300&q=80';
+}
 
 export interface EmailRecord {
   id: string;
@@ -53,8 +70,8 @@ function formatCurrency(amount: number, currency: string = 'LKR'): string {
   return `LKR ${Math.round(amount).toLocaleString()}`;
 }
 
-export function generateOrderEmailHtml(order: any, settings?: any): string {
-  const storeName = settings?.emailSettings?.senderName || 'MOON APPAREL ATELIER';
+export function generateOrderEmailHtml(order: any, settings?: any, cidImageMap?: Record<number, string>): string {
+  const storeName = settings?.emailSettings?.senderName || 'Moon Apparel';
   const currency = order.currency || 'LKR';
   const items = Array.isArray(order.items) ? order.items : [];
   const customer = order.customer || {};
@@ -68,12 +85,9 @@ export function generateOrderEmailHtml(order: any, settings?: any): string {
 
   const isBank = order.paymentMethod === 'bank_transfer';
 
-  const itemsHtml = items.map((item: any) => {
+  const itemsHtml = items.map((item: any, idx: number) => {
     const p = item.product || {};
-    let imgUrl = p.image || '';
-    if (!imgUrl.startsWith('http://') && !imgUrl.startsWith('https://')) {
-      imgUrl = 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=300&q=80';
-    }
+    const imgUrl = (cidImageMap && cidImageMap[idx]) ? cidImageMap[idx] : resolveProductImageUrl(p.image);
     const unitPrice = currency === 'USD' ? (p.priceUSD || 0) : (p.priceLKR || 0);
     const lineTotal = unitPrice * (item.quantity || 1);
     const colorHex = item.color?.hex || '#1a1a1a';
@@ -81,10 +95,10 @@ export function generateOrderEmailHtml(order: any, settings?: any): string {
 
     return `
       <tr>
-        <td style="padding: 16px 12px; border-bottom: 1px solid #f0ede6; vertical-align: top; width: 68px;">
-          <img src="${imgUrl}" alt="${p.name || 'Garment'}" width="60" height="75" style="border-radius: 8px; object-fit: cover; display: block; border: 1px solid #e7e2d9;" />
+        <td style="padding: 14px 10px; border-bottom: 1px solid #f0ede6; vertical-align: middle; width: 64px;">
+          <img src="${imgUrl}" alt="${p.name || 'Garment'}" width="60" height="75" style="display: block; width: 60px; height: 75px; border-radius: 8px; border: 1px solid #e7e2d9; background-color: #f7f5f0;" />
         </td>
-        <td style="padding: 16px 12px; border-bottom: 1px solid #f0ede6; vertical-align: top;">
+        <td style="padding: 14px 10px; border-bottom: 1px solid #f0ede6; vertical-align: middle;">
           <div style="font-size: 13px; font-weight: 700; color: #111111; letter-spacing: 0.3px; text-transform: uppercase;">${p.name || 'Artisanal Piece'}</div>
           <div style="font-size: 11px; color: #767066; margin-top: 3px; font-family: monospace;">${p.clothingType || p.category || 'Atelier Collection'}</div>
           <div style="margin-top: 6px; display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: #4a453e;">
@@ -93,10 +107,10 @@ export function generateOrderEmailHtml(order: any, settings?: any): string {
             <span>${colorName}</span>
           </div>
         </td>
-        <td style="padding: 16px 12px; border-bottom: 1px solid #f0ede6; vertical-align: top; text-align: center; font-size: 12px; color: #555047; font-weight: 600;">
-          × ${item.quantity || 1}
+        <td style="padding: 14px 10px; border-bottom: 1px solid #f0ede6; vertical-align: middle; text-align: center; font-size: 12px; color: #555047; font-weight: 600;">
+          x ${item.quantity || 1}
         </td>
-        <td style="padding: 16px 12px; border-bottom: 1px solid #f0ede6; vertical-align: top; text-align: right; font-size: 13px; font-weight: 700; color: #111111; font-family: monospace;">
+        <td style="padding: 14px 10px; border-bottom: 1px solid #f0ede6; vertical-align: middle; text-align: right; font-size: 13px; font-weight: 700; color: #111111; font-family: monospace;">
           ${formatCurrency(lineTotal, currency)}
         </td>
       </tr>
@@ -116,9 +130,9 @@ export function generateOrderEmailHtml(order: any, settings?: any): string {
 </head>
 <body style="margin: 0; padding: 0; background-color: #f7f5f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1f1d1a; -webkit-font-smoothing: antialiased;">
 
-  <!-- Preheader text for email clients to avoid spam previewing code -->
+  <!-- Preheader text -->
   <div style="display: none; max-height: 0px; overflow: hidden; mso-hide: all; font-size: 1px; line-height: 1px; max-width: 0px; opacity: 0;">
-    Your order ${order.orderId} has been confirmed with ${storeName}. View full garment breakdown, courier tracking, and payment receipt.
+    Thank you for your order ${order.orderId}. Your garments have been registered for courier dispatch.
   </div>
 
   <!-- Outer wrapper -->
@@ -126,61 +140,60 @@ export function generateOrderEmailHtml(order: any, settings?: any): string {
     <tr>
       <td align="center">
         <!-- Main Container -->
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width: 620px; background-color: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.06); border: 1px solid #eae5db;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width: 620px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.04); border: 1px solid #eae5db;">
           
           <!-- Top Accent Bar -->
           <tr>
-            <td style="height: 6px; background: linear-gradient(90deg, #111111 0%, #a39274 50%, #111111 100%);"></td>
+            <td style="height: 4px; background-color: #111111;"></td>
           </tr>
 
           <!-- Header -->
           <tr>
-            <td style="padding: 36px 36px 24px; text-align: center; background-color: #0d0d0d; color: #ffffff;">
-              <div style="letter-spacing: 5px; font-size: 24px; font-weight: 900; color: #ffffff; text-transform: uppercase; font-family: 'Times New Roman', Times, serif;">
+            <td style="padding: 32px 32px 20px; text-align: center; background-color: #0d0d0d; color: #ffffff;">
+              <div style="letter-spacing: 4px; font-size: 22px; font-weight: 900; color: #ffffff; text-transform: uppercase;">
                 M O O N
               </div>
-              <div style="font-size: 10px; letter-spacing: 3px; color: #c4b59d; text-transform: uppercase; margin-top: 6px; font-weight: 500;">
-                Atelier · Colombo · Sri Lanka
+              <div style="font-size: 10px; letter-spacing: 2px; color: #c4b59d; text-transform: uppercase; margin-top: 4px; font-weight: 500;">
+                Atelier Colombo
               </div>
-              
-              <div style="margin-top: 24px; display: inline-block; padding: 6px 16px; background-color: rgba(196, 181, 157, 0.15); border: 1px solid rgba(196, 181, 157, 0.4); border-radius: 30px; font-size: 11px; letter-spacing: 1.5px; color: #dfd7c8; text-transform: uppercase; font-weight: 600;">
-                ✓ Order Confirmed &amp; Logged
+              <div style="margin-top: 18px; display: inline-block; padding: 4px 14px; background-color: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 20px; font-size: 11px; letter-spacing: 1px; color: #ffffff; text-transform: uppercase; font-weight: 600;">
+                Order Confirmation
               </div>
             </td>
           </tr>
 
           <!-- Greeting & Summary Card -->
           <tr>
-            <td style="padding: 32px 36px 16px;">
-              <div style="font-size: 15px; color: #555047; margin-bottom: 8px;">
+            <td style="padding: 28px 32px 16px;">
+              <div style="font-size: 14px; color: #555047; margin-bottom: 6px;">
                 Dear <strong style="color: #111111;">${customer.fullName || 'Valued Client'}</strong>,
               </div>
-              <div style="font-size: 14px; line-height: 1.6; color: #3d3933;">
-                Thank you for acquiring from <strong>${storeName}</strong>. Your bespoke order has been verified and registered for island-wide priority courier dispatch.
+              <div style="font-size: 13px; line-height: 1.6; color: #3d3933;">
+                Thank you for your order with <strong>${storeName}</strong>. Your purchase has been confirmed and logged for priority dispatch.
               </div>
 
               <!-- Quick Order Stats -->
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 24px; background-color: #fbf9f5; border-radius: 12px; border: 1px solid #eee8dc; padding: 14px 18px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 20px; background-color: #fbf9f5; border-radius: 10px; border: 1px solid #eee8dc; padding: 12px 16px;">
                 <tr>
-                  <td style="padding: 8px; width: 50%;">
-                    <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #8a8275;">Order Reference</div>
-                    <div style="font-size: 15px; font-weight: 800; color: #111111; font-family: monospace; margin-top: 2px;">${order.orderId}</div>
+                  <td style="padding: 6px 8px; width: 50%;">
+                    <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #8a8275;">Order Reference</div>
+                    <div style="font-size: 14px; font-weight: 700; color: #111111; font-family: monospace; margin-top: 2px;">${order.orderId}</div>
                   </td>
-                  <td style="padding: 8px; width: 50%; text-align: right;">
-                    <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #8a8275;">Order Date</div>
-                    <div style="font-size: 13px; font-weight: 600; color: #333333; margin-top: 2px;">${orderDate}</div>
+                  <td style="padding: 6px 8px; width: 50%; text-align: right;">
+                    <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #8a8275;">Order Date</div>
+                    <div style="font-size: 12px; font-weight: 600; color: #333333; margin-top: 2px;">${orderDate}</div>
                   </td>
                 </tr>
                 <tr>
-                  <td style="padding: 8px; border-top: 1px solid #f0ebe0;">
-                    <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #8a8275;">Payment Mode</div>
-                    <div style="font-size: 12px; font-weight: 700; color: #111111; margin-top: 2px;">
-                      ${isBank ? '🏦 Bank Deposit / Slip Upload' : '🚚 Cash on Delivery (COD)'}
+                  <td style="padding: 6px 8px; border-top: 1px solid #f0ebe0;">
+                    <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #8a8275;">Payment Mode</div>
+                    <div style="font-size: 12px; font-weight: 600; color: #111111; margin-top: 2px;">
+                      ${isBank ? 'Bank Transfer / Deposit Slip' : 'Cash on Delivery (COD)'}
                     </div>
                   </td>
-                  <td style="padding: 8px; border-top: 1px solid #f0ebe0; text-align: right;">
-                    <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #8a8275;">Courier Tracking</div>
-                    <div style="font-size: 12px; font-weight: 700; color: #0d5d36; font-family: monospace; margin-top: 2px;">${order.trackingNumber || 'DOMEX-EXPRESS'}</div>
+                  <td style="padding: 6px 8px; border-top: 1px solid #f0ebe0; text-align: right;">
+                    <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #8a8275;">Tracking ID</div>
+                    <div style="font-size: 12px; font-weight: 600; color: #0d5d36; font-family: monospace; margin-top: 2px;">${order.trackingNumber || 'DOMEX-EXPRESS'}</div>
                   </td>
                 </tr>
               </table>
@@ -189,17 +202,17 @@ export function generateOrderEmailHtml(order: any, settings?: any): string {
 
           <!-- Garments Ordered Section -->
           <tr>
-            <td style="padding: 12px 36px;">
-              <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 800; color: #8a8275; margin-bottom: 12px; border-bottom: 2px solid #111111; padding-bottom: 6px;">
+            <td style="padding: 10px 32px;">
+              <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; color: #767066; margin-bottom: 10px; border-bottom: 1px solid #e7e2d9; padding-bottom: 6px;">
                 Selected Garments (${items.length} ${items.length === 1 ? 'Piece' : 'Pieces'})
               </div>
 
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width: 100%; border-collapse: collapse;">
                 <thead>
-                  <tr style="font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #9c9486; text-align: left;">
-                    <th style="padding-bottom: 8px;" colspan="2">Piece</th>
-                    <th style="padding-bottom: 8px; text-align: center;">Qty</th>
-                    <th style="padding-bottom: 8px; text-align: right;">Price</th>
+                  <tr style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #9c9486; text-align: left;">
+                    <th style="padding-bottom: 6px;" colspan="2">Piece</th>
+                    <th style="padding-bottom: 6px; text-align: center;">Qty</th>
+                    <th style="padding-bottom: 6px; text-align: right;">Price</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -211,34 +224,34 @@ export function generateOrderEmailHtml(order: any, settings?: any): string {
 
           <!-- Financial Settlement -->
           <tr>
-            <td style="padding: 12px 36px;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #faf8f4; border-radius: 12px; border: 1px solid #eee8dc; padding: 18px;">
+            <td style="padding: 10px 32px 16px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #faf8f4; border-radius: 10px; border: 1px solid #eee8dc; padding: 14px 16px;">
                 <tr>
-                  <td style="font-size: 12px; color: #666055; padding: 4px 0;">Subtotal</td>
-                  <td style="font-size: 12px; font-weight: 600; color: #111111; text-align: right; font-family: monospace; padding: 4px 0;">
+                  <td style="font-size: 12px; color: #666055; padding: 3px 0;">Subtotal</td>
+                  <td style="font-size: 12px; font-weight: 600; color: #111111; text-align: right; font-family: monospace; padding: 3px 0;">
                     ${formatCurrency(order.subtotal || 0, currency)}
                   </td>
                 </tr>
                 ${order.discount && order.discount > 0 ? `
                 <tr>
-                  <td style="font-size: 12px; color: #0f766e; padding: 4px 0;">Promo Privilege Discount</td>
-                  <td style="font-size: 12px; font-weight: 600; color: #0f766e; text-align: right; font-family: monospace; padding: 4px 0;">
+                  <td style="font-size: 12px; color: #0f766e; padding: 3px 0;">Privilege Discount</td>
+                  <td style="font-size: 12px; font-weight: 600; color: #0f766e; text-align: right; font-family: monospace; padding: 3px 0;">
                     -${formatCurrency(order.discount, currency)}
                   </td>
                 </tr>
                 ` : ''}
                 <tr>
-                  <td style="font-size: 12px; color: #666055; padding: 4px 0;">Island-Wide Express Courier</td>
-                  <td style="font-size: 12px; font-weight: 600; color: #111111; text-align: right; font-family: monospace; padding: 4px 0;">
+                  <td style="font-size: 12px; color: #666055; padding: 3px 0;">Courier Delivery</td>
+                  <td style="font-size: 12px; font-weight: 600; color: #111111; text-align: right; font-family: monospace; padding: 3px 0;">
                     ${order.shippingFee === 0 ? '<span style="color: #0d5d36; font-weight: bold;">Free Delivery</span>' : formatCurrency(order.shippingFee || 0, currency)}
                   </td>
                 </tr>
                 <tr>
-                  <td colspan="2" style="padding-top: 10px; border-top: 1px dashed #ded7c8;"></td>
+                  <td colspan="2" style="padding-top: 8px; border-top: 1px dashed #ded7c8;"></td>
                 </tr>
                 <tr>
-                  <td style="font-size: 15px; font-weight: 900; color: #111111; text-transform: uppercase; letter-spacing: 0.5px;">Grand Total Due</td>
-                  <td style="font-size: 18px; font-weight: 900; color: #111111; text-align: right; font-family: monospace;">
+                  <td style="font-size: 14px; font-weight: 800; color: #111111; text-transform: uppercase;">Total Due</td>
+                  <td style="font-size: 16px; font-weight: 800; color: #111111; text-align: right; font-family: monospace;">
                     ${formatCurrency(order.total || 0, currency)}
                   </td>
                 </tr>
@@ -248,36 +261,36 @@ export function generateOrderEmailHtml(order: any, settings?: any): string {
 
           <!-- Delivery Address & Logistics Card -->
           <tr>
-            <td style="padding: 16px 36px 28px;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border: 1px solid #eee8dc; border-radius: 12px; overflow: hidden;">
+            <td style="padding: 10px 32px 24px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border: 1px solid #eee8dc; border-radius: 10px; overflow: hidden;">
                 <tr style="background-color: #f4efe6;">
-                  <td style="padding: 10px 16px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #4a453e;">
-                    📍 Destination Address &amp; Courier Details
+                  <td style="padding: 8px 14px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #4a453e;">
+                    Delivery &amp; Courier Details
                   </td>
                 </tr>
                 <tr>
-                  <td style="padding: 16px; font-size: 12px; line-height: 1.6; color: #3d3933; background-color: #ffffff;">
+                  <td style="padding: 14px; font-size: 12px; line-height: 1.6; color: #3d3933; background-color: #ffffff;">
                     <div style="font-weight: 700; color: #111111; font-size: 13px;">${customer.fullName || ''}</div>
                     <div>${customer.addressLine || ''}${customer.apartment ? `, ${customer.apartment}` : ''}</div>
                     <div>${customer.city || ''}, ${customer.district || ''} District</div>
                     <div>${customer.country || 'Sri Lanka'} ${customer.postalCode ? `· ${customer.postalCode}` : ''}</div>
                     <div style="margin-top: 6px; color: #767066; font-size: 11px;">
-                      📞 Phone: <strong style="color: #222222;">${customer.phone || 'N/A'}</strong> · ✉️ Email: <strong style="color: #222222;">${customer.email || 'N/A'}</strong>
+                      Phone: <strong style="color: #222222;">${customer.phone || 'N/A'}</strong> · Email: <strong style="color: #222222;">${customer.email || 'N/A'}</strong>
                     </div>
-                    <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #f4efe6; color: #767066; font-size: 11px;">
-                      ⏱️ <strong>Estimated Dispatch:</strong> ${order.estimatedDelivery || '2-3 Business Days (Island-Wide Express Courier)'}
+                    <div style="margin-top: 6px; padding-top: 6px; border-top: 1px solid #f4efe6; color: #767066; font-size: 11px;">
+                      Estimated Delivery: ${order.estimatedDelivery || '2-3 Business Days'}
                     </div>
                   </td>
                 </tr>
               </table>
 
               ${isBank && order.bankReceipt ? `
-              <!-- Bank Receipt Reference -->
-              <div style="margin-top: 14px; padding: 12px 16px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 11px; color: #334155;">
-                <div style="font-weight: 700; color: #0f172a; margin-bottom: 4px;">✓ Bank Transfer Verification Logged</div>
+              <!-- Payment Note -->
+              <div style="margin-top: 12px; padding: 10px 14px; background-color: #fbfbfb; border: 1px solid #e7e5e4; border-radius: 8px; font-size: 11px; color: #44403c;">
+                <div style="font-weight: 700; color: #1c1917; margin-bottom: 2px;">Payment Method: Direct Bank Transfer</div>
                 <div>Bank: <strong>${order.bankReceipt.bankName || 'Commercial Bank of Ceylon'}</strong></div>
-                ${order.bankReceipt.transactionRef ? `<div>Reference / Deposit ID: <strong style="font-family: monospace;">${order.bankReceipt.transactionRef}</strong></div>` : ''}
-                <div style="color: #64748b; margin-top: 4px;">Payment slip file <em>"${order.bankReceipt.fileName || 'slip.jpg'}"</em> received and routed to accounts reconciliation.</div>
+                ${order.bankReceipt.transactionRef ? `<div>Reference: <strong style="font-family: monospace;">${order.bankReceipt.transactionRef}</strong></div>` : ''}
+                <div style="color: #78716c; margin-top: 2px;">Your payment slip has been uploaded and verified with our order fulfillment desk.</div>
               </div>
               ` : ''}
             </td>
@@ -285,30 +298,30 @@ export function generateOrderEmailHtml(order: any, settings?: any): string {
 
           <!-- Help / Concierge Notice -->
           <tr>
-            <td style="padding: 24px 36px; background-color: #faf8f5; border-top: 1px solid #eee8dc; text-align: center;">
-              <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #111111;">
-                Concierge Assistance &amp; Inquiries
+            <td style="padding: 20px 32px; background-color: #faf8f5; border-top: 1px solid #eee8dc; text-align: center;">
+              <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #111111;">
+                Customer Inquiries &amp; Support
               </div>
-              <div style="font-size: 11px; color: #767066; margin-top: 6px; line-height: 1.5;">
-                Have questions regarding your tailoring or tracking? Reach our dispatch specialists at:<br>
-                <a href="mailto:${supportContact}" style="color: #111111; font-weight: 700; text-decoration: underline;">${supportContact}</a> &nbsp;·&nbsp;
-                <span style="color: #111111; font-weight: 700;">${phoneContact}</span>
+              <div style="font-size: 11px; color: #767066; margin-top: 4px; line-height: 1.5;">
+                Have questions regarding your order or tracking? Contact us at:<br>
+                <a href="mailto:${supportContact}" style="color: #111111; font-weight: 600; text-decoration: underline;">${supportContact}</a> &nbsp;·&nbsp;
+                <span style="color: #111111; font-weight: 600;">${phoneContact}</span>
               </div>
             </td>
           </tr>
 
           <!-- Footer -->
           <tr>
-            <td style="padding: 24px 36px; background-color: #0d0d0d; color: #888888; text-align: center; font-size: 10px; line-height: 1.6;">
-              <div style="letter-spacing: 3px; font-size: 12px; color: #ffffff; font-weight: 800; text-transform: uppercase; margin-bottom: 6px;">
+            <td style="padding: 20px 32px; background-color: #0d0d0d; color: #888888; text-align: center; font-size: 10px; line-height: 1.6;">
+              <div style="letter-spacing: 2px; font-size: 11px; color: #ffffff; font-weight: 700; text-transform: uppercase; margin-bottom: 4px;">
                 MOON APPAREL
               </div>
-              <div>Cinnamon Gardens, Colombo 07, Western Province, Sri Lanka</div>
-              <div style="margin-top: 8px; color: #666666;">
-                This is an automated confirmation of purchase. Please retain this email for your records and courier receipt.
+              <div>Colombo 07, Sri Lanka</div>
+              <div style="margin-top: 6px; color: #666666;">
+                This is an automated purchase receipt for your records.
               </div>
-              <div style="margin-top: 12px; color: #555555;">
-                © ${new Date().getFullYear()} MOON APPAREL (PVT) LTD. All rights reserved.
+              <div style="margin-top: 8px; color: #555555;">
+                © ${new Date().getFullYear()} MOON APPAREL (PVT) LTD.
               </div>
             </td>
           </tr>
@@ -327,44 +340,43 @@ export function generateOrderEmailText(order: any): string {
   const currency = order.currency || 'LKR';
   const customer = order.customer || {};
   const items = Array.isArray(order.items) ? order.items : [];
+  const orderDate = order.orderDate
+    ? new Date(order.orderDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    : new Date().toLocaleDateString();
 
-  let text = `=======================================================\n`;
-  text += `           MOON APPAREL ATELIER - ORDER CONFIRMATION\n`;
-  text += `=======================================================\n\n`;
-  text += `Dear ${customer.fullName || 'Valued Customer'},\n\n`;
-  text += `Thank you for your purchase from MOON APPAREL. Your order has been successfully placed and logged.\n\n`;
-  text += `Order Reference:  ${order.orderId}\n`;
-  text += `Date:             ${order.orderDate || new Date().toISOString()}\n`;
-  text += `Payment Method:   ${order.paymentMethod === 'bank_transfer' ? 'Bank Transfer (Slip Attached)' : 'Cash on Delivery (COD)'}\n`;
-  text += `Courier Tracking: ${order.trackingNumber || 'DOMEX-EXPRESS'}\n`;
-  text += `Estimated Time:   ${order.estimatedDelivery || '2-3 Business Days'}\n\n`;
-  text += `-------------------------------------------------------\n`;
-  text += `ORDERED ITEMS:\n`;
-  text += `-------------------------------------------------------\n`;
+  let text = `Moon Apparel - Order Confirmation\n\n`;
+  text += `Order Reference: ${order.orderId}\n`;
+  text += `Date: ${orderDate}\n`;
+  text += `Tracking: ${order.trackingNumber || 'DOMEX-EXPRESS'}\n`;
+  text += `Payment Method: ${order.paymentMethod === 'bank_transfer' ? 'Bank Transfer' : 'Cash on Delivery (COD)'}\n\n`;
+  text += `Dear ${customer.fullName || 'Customer'},\n\n`;
+  text += `Thank you for your order with Moon Apparel. Your purchase has been confirmed and registered for courier dispatch.\n\n`;
+  text += `ITEMS ORDERED:\n`;
 
   items.forEach((item: any, i: number) => {
     const p = item.product || {};
     const price = currency === 'USD' ? (p.priceUSD || 0) : (p.priceLKR || 0);
     const lineTotal = price * (item.quantity || 1);
-    text += `${i + 1}. ${p.name || 'Garment'} (Size: ${item.size || 'M'}, Color: ${item.color?.name || 'Standard'}) x ${item.quantity || 1} = ${formatCurrency(lineTotal, currency)}\n`;
+    text += `${i + 1}. ${p.name || 'Garment'} (${item.size || 'M'}, ${item.color?.name || 'Standard'}) x ${item.quantity || 1}: ${formatCurrency(lineTotal, currency)}\n`;
   });
 
-  text += `\n-------------------------------------------------------\n`;
-  text += `Subtotal:      ${formatCurrency(order.subtotal || 0, currency)}\n`;
+  text += `\nSUMMARY:\n`;
+  text += `Subtotal: ${formatCurrency(order.subtotal || 0, currency)}\n`;
   if (order.discount > 0) {
-    text += `Discount:     -${formatCurrency(order.discount, currency)}\n`;
+    text += `Discount: -${formatCurrency(order.discount, currency)}\n`;
   }
-  text += `Shipping:      ${order.shippingFee === 0 ? 'Complimentary' : formatCurrency(order.shippingFee || 0, currency)}\n`;
-  text += `Total Amount:  ${formatCurrency(order.total || 0, currency)}\n`;
-  text += `-------------------------------------------------------\n\n`;
-  text += `SHIPPING ADDRESS:\n`;
+  text += `Shipping: ${order.shippingFee === 0 ? 'Complimentary' : formatCurrency(order.shippingFee || 0, currency)}\n`;
+  text += `Total: ${formatCurrency(order.total || 0, currency)}\n\n`;
+
+  text += `DELIVERY ADDRESS:\n`;
   text += `${customer.fullName || ''}\n`;
-  text += `${customer.addressLine || ''}\n`;
+  text += `${customer.addressLine || ''}${customer.apartment ? `, ${customer.apartment}` : ''}\n`;
   text += `${customer.city || ''}, ${customer.district || ''} District\n`;
   text += `${customer.country || 'Sri Lanka'} ${customer.postalCode || ''}\n`;
   text += `Phone: ${customer.phone || 'N/A'}\n\n`;
-  text += `Concierge support: support@moon-clothing.com | +94 11 234 5678\n`;
-  text += `Colombo 07, Sri Lanka\n`;
+
+  text += `Customer Support: support@moon-clothing.com | +94 77 123 4567\n`;
+  text += `Moon Apparel Atelier, Colombo 07, Sri Lanka\n`;
 
   return text;
 }
@@ -490,15 +502,101 @@ export async function sendOrderConfirmationEmail(order: any, settings?: any): Pr
     return { success: false, error: 'Customer email address is missing' };
   }
 
-  const senderName = settings?.emailSettings?.senderName || 'MOON APPAREL ATELIER';
-  const senderEmail = settings?.emailSettings?.senderEmail || 'orders@moon-clothing.com';
+  const rawSenderName = settings?.emailSettings?.senderName || 'Moon Apparel';
+  const senderName = rawSenderName === rawSenderName.toUpperCase() && rawSenderName.length > 5 ? 'Moon Apparel' : rawSenderName;
+  const senderEmail = settings?.emailSettings?.senderEmail || 'lerninganimation@gmail.com';
   const ownerEmail = settings?.emailSettings?.ownerNotificationEmail || 'starknilex20050426@gmail.com';
   const notifyOwner = settings?.emailSettings?.notifyOwnerOnNewOrder !== false;
 
-  const subject = settings?.emailSettings?.emailSubjectTemplate
+  let rawSubject = settings?.emailSettings?.emailSubjectTemplate
     ? settings.emailSettings.emailSubjectTemplate.replace('{orderId}', order.orderId)
-    : `Order Confirmation: ${order.orderId} - ${senderName}`;
-  const htmlContent = generateOrderEmailHtml(order, settings);
+    : `Moon Apparel Order Confirmation #${order.orderId}`;
+  rawSubject = rawSubject.replace('—', '-').trim();
+  const subject = rawSubject;
+
+  // Build inline image attachments and CID map so images display directly in all email clients without external blocking
+  const attachments: any[] = [];
+  const cidImageMap: Record<number, string> = {};
+
+  const searchDirs = [
+    PUBLIC_IMAGES_DIR,
+    path.join(process.cwd(), 'public', 'images'),
+    path.join(process.cwd(), 'public'),
+    path.join(__dirname, '..', 'public', 'images'),
+    path.join(__dirname, 'public', 'images'),
+  ];
+
+  const items = Array.isArray(order.items) ? order.items : [];
+  items.forEach((item: any, idx: number) => {
+    const rawImage = item.product?.image;
+    const cidName = `garment_img_${idx}@moon-apparel`;
+
+    if (!rawImage) {
+      return;
+    }
+
+    // Case 1: Base64 data URL
+    if (typeof rawImage === 'string' && rawImage.startsWith('data:image/')) {
+      const match = rawImage.match(/^data:(image\/[a-zA-Z0-9+.-]+);base64,(.+)$/);
+      if (match) {
+        const mimeType = match[1];
+        const base64Data = match[2];
+        const ext = mimeType.split('/')[1] || 'jpg';
+        attachments.push({
+          filename: `garment-${idx}.${ext}`,
+          content: Buffer.from(base64Data, 'base64'),
+          contentType: mimeType,
+          cid: cidName,
+          contentDisposition: 'inline',
+        });
+        cidImageMap[idx] = `cid:${cidName}`;
+        return;
+      }
+    }
+
+    // Case 2: Local file in public/images
+    if (typeof rawImage === 'string') {
+      const filename = rawImage.split('/').pop()?.split('?')[0];
+      if (filename) {
+        let foundPath: string | null = null;
+        for (const dir of searchDirs) {
+          try {
+            const candidate = path.join(dir, filename);
+            if (fs.existsSync(candidate)) {
+              foundPath = candidate;
+              break;
+            }
+          } catch {
+            // ignore
+          }
+        }
+
+        if (foundPath) {
+          try {
+            const fileBuffer = fs.readFileSync(foundPath);
+            const ext = path.extname(foundPath).replace('.', '').toLowerCase() || 'jpg';
+            const contentType = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+            attachments.push({
+              filename: `garment-${idx}-${filename}`,
+              content: fileBuffer,
+              contentType,
+              cid: cidName,
+              contentDisposition: 'inline',
+            });
+            cidImageMap[idx] = `cid:${cidName}`;
+            return;
+          } catch (readErr) {
+            console.warn(`Could not read local image at ${foundPath}:`, readErr);
+          }
+        }
+      }
+    }
+
+    // Fallback: If not found locally, use HTTPS live URL
+    cidImageMap[idx] = resolveProductImageUrl(rawImage);
+  });
+
+  const htmlContent = generateOrderEmailHtml(order, settings, cidImageMap);
   const textContent = generateOrderEmailText(order);
 
   const emailId = `eml-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -531,11 +629,10 @@ export async function sendOrderConfirmationEmail(order: any, settings?: any): Pr
         subject,
         html: htmlContent,
         text: textContent,
+        attachments: attachments.length > 0 ? attachments : undefined,
         headers: {
           'X-Entity-Ref-ID': order.orderId,
           'Auto-Submitted': 'auto-generated',
-          'X-Auto-Response-Suppress': 'All',
-          'List-Unsubscribe': `<mailto:${fromAddress}?subject=unsubscribe>`,
         },
       };
 
@@ -566,11 +663,10 @@ export async function sendOrderConfirmationEmail(order: any, settings?: any): Pr
             subject,
             html: htmlContent,
             text: textContent,
+            attachments: attachments.length > 0 ? attachments : undefined,
             headers: {
               'X-Entity-Ref-ID': order.orderId,
               'Auto-Submitted': 'auto-generated',
-              'X-Auto-Response-Suppress': 'All',
-              'List-Unsubscribe': `<mailto:${fromAddress}?subject=unsubscribe>`,
             },
           };
           if (notifyOwner && ownerEmail && ownerEmail.toLowerCase() !== recipient.toLowerCase()) {
@@ -611,11 +707,10 @@ export async function sendOrderConfirmationEmail(order: any, settings?: any): Pr
         subject,
         html: htmlContent,
         text: textContent,
+        attachments: attachments.length > 0 ? attachments : undefined,
         headers: {
           'X-Entity-Ref-ID': order.orderId,
           'Auto-Submitted': 'auto-generated',
-          'X-Auto-Response-Suppress': 'All',
-          'List-Unsubscribe': `<mailto:${fromAddress}?subject=unsubscribe>`,
         },
       });
       messageId = info.messageId || messageId;

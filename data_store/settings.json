@@ -21,11 +21,11 @@
   },
   "emailSettings": {
     "autoSendOrderEmail": true,
-    "senderName": "MOON APPAREL ATELIER",
+    "senderName": "Moon Apparel",
     "senderEmail": "lerninganimation@gmail.com",
     "ownerNotificationEmail": "starknilex20050426@gmail.com",
     "notifyOwnerOnNewOrder": true,
-    "emailSubjectTemplate": "Order Confirmed: #{orderId} — MOON APPAREL",
+    "emailSubjectTemplate": "Moon Apparel Order Confirmation #{orderId}",
     "smtpConfig": {
       "enabled": false,
       "host": "",

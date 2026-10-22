@@ -3,7 +3,7 @@
   "outputDirectory": "dist",
   "functions": {
     "api/index.js": {
-      "includeFiles": "data_store/**"
+      "includeFiles": "{data_store/**,public/images/**}"
     }
   },
   "rewrites": [
