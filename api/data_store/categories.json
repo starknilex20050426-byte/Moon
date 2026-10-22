@@ -1,0 +1,33 @@
+[
+  {
+    "id": "tops",
+    "label": "Tops & Shirts",
+    "clothingTypes": [
+      "T-Shirts",
+      "Hoodies",
+      "Overshirts"
+    ]
+  },
+  {
+    "id": "bottoms",
+    "label": "Bottoms & Denim",
+    "clothingTypes": [
+      "Trousers",
+      "Denim Jeans"
+    ]
+  },
+  {
+    "id": "outerwear",
+    "label": "Outerwear & Jackets",
+    "clothingTypes": [
+      "Bomber Jackets"
+    ]
+  },
+  {
+    "id": "knitwear",
+    "label": "Knitwear & Sweaters",
+    "clothingTypes": [
+      "Sweaters"
+    ]
+  }
+]

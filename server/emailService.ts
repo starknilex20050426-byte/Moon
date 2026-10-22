@@ -5,7 +5,9 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const REPO_DATA_DIR = path.join(__dirname, '..', 'data_store');
+const REPO_DATA_DIR = fs.existsSync(path.join(process.cwd(), 'data_store'))
+  ? path.join(process.cwd(), 'data_store')
+  : path.join(__dirname, '..', 'data_store');
 const DATA_DIR = process.env.VERCEL ? path.join('/tmp', 'data_store') : REPO_DATA_DIR;
 const SENT_EMAILS_FILE = path.join(DATA_DIR, 'sent_emails.json');
 

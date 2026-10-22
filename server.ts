@@ -15,10 +15,16 @@ const __dirname = path.dirname(__filename);
 const isProduction = process.env.NODE_ENV === 'production';
 const PORT = Number(process.env.PORT) || 3000;
 
-const REPO_DATA_DIR = path.join(__dirname, 'data_store');
+const REPO_DATA_DIR = fs.existsSync(path.join(process.cwd(), 'data_store'))
+  ? path.join(process.cwd(), 'data_store')
+  : path.join(__dirname, 'data_store');
 const DATA_DIR = process.env.VERCEL ? path.join('/tmp', 'data_store') : REPO_DATA_DIR;
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+try {
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
+} catch {
+  // Read-only filesystem fallback handled safely
 }
 
 // Seed /tmp data store from repo files if running on Vercel serverless
@@ -937,8 +943,15 @@ async function startServer() {
   });
 }
 
-if (!process.env.VERCEL) {
+// Only launch standalone web server when running directly (e.g. tsx server.ts or node server.js),
+// and NEVER inside Vercel serverless function invocations.
+const isMainScript = Boolean(
+  process.argv[1] &&
+  (process.argv[1].endsWith('server.ts') || process.argv[1].endsWith('server.js') || process.argv[1].endsWith('start.sh'))
+);
+
+if (!process.env.VERCEL && isMainScript) {
   startServer();
 }
 
-export default app;
+export default (req: any, res: any) => app(req, res);

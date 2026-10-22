@@ -437,35 +437,68 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
     showToast('Reset hero photo to default brand campaign!');
   };
 
-  const handleTestAndSaveBackendUrl = async () => {
-    const trimmed = backendUrlInput.trim().replace(/\/$/, '');
+  const handleResetToBuiltinServer = async () => {
+    setBackendUrlInput('');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('moon_backend_url');
+    }
     setIsTestingBackendPing(true);
     setBackendPingResult(null);
     try {
-      const pingUrl = trimmed ? `${trimmed}/api/settings` : '/api/settings';
-      const res = await fetch(pingUrl);
+      const res = await fetch('/api/settings');
       if (res.ok) {
-        if (trimmed) {
-          localStorage.setItem('moon_backend_url', trimmed);
-        } else {
-          localStorage.removeItem('moon_backend_url');
-        }
         setBackendPingResult({
           success: true,
-          message: '✓ Backend connection successful! Live API & auto-emails are verified.',
+          message: '✓ Built-in backend server is active and verified! (Same-origin API: /api/*)',
+        });
+        showToast('✓ Connected to built-in backend server!');
+      } else {
+        setBackendPingResult({
+          success: false,
+          message: `Built-in server returned HTTP ${res.status}.`,
+        });
+        showToast(`Server returned HTTP ${res.status}`);
+      }
+    } catch {
+      setBackendPingResult({
+        success: false,
+        message: 'Could not connect to built-in server. Please refresh your browser.',
+      });
+      showToast('Connection check failed');
+    } finally {
+      setIsTestingBackendPing(false);
+    }
+  };
+
+  const handleTestAndSaveBackendUrl = async () => {
+    const trimmed = backendUrlInput.trim().replace(/\/$/, '');
+    if (!trimmed) {
+      await handleResetToBuiltinServer();
+      return;
+    }
+    setIsTestingBackendPing(true);
+    setBackendPingResult(null);
+    try {
+      const pingUrl = `${trimmed}/api/settings`;
+      const res = await fetch(pingUrl);
+      if (res.ok) {
+        localStorage.setItem('moon_backend_url', trimmed);
+        setBackendPingResult({
+          success: true,
+          message: `✓ Backend connection successful to ${trimmed}! Live API & auto-emails are verified.`,
         });
         showToast('✓ Backend connected & saved successfully!');
       } else {
         setBackendPingResult({
           success: false,
-          message: `Backend responded with HTTP ${res.status}. Verify the URL and that your Vercel deployment has finished.`,
+          message: `Backend at ${trimmed} responded with HTTP ${res.status}. If this is not the backend for MOON APPAREL, click "Use Built-in Server".`,
         });
-        showToast('Backend responded with an error');
+        showToast(`Backend responded with HTTP ${res.status}`);
       }
     } catch {
       setBackendPingResult({
         success: false,
-        message: `Failed to connect to ${trimmed || 'current origin'}. Check that your Vercel backend deployment is live.`,
+        message: `Failed to connect to ${trimmed}. Check CORS or network. Click "Use Built-in Server" to use default same-origin server.`,
       });
       showToast('Connection failed');
     } finally {
@@ -609,7 +642,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
         }
         setSmtpTestResult({
           success: false,
-          message: `Backend API responded with ${errMessage}. Verify that the Live Backend API URL is saved and Vercel deployment has finished building.`,
+          message: `Backend API responded with ${errMessage}. If you set a custom URL in "HOSTING & LIVE BACKEND API GATEWAY", click "Use Built-in Server" in Store Settings to restore the default server.`,
         });
         showToast(`SMTP check failed (${res.status})`);
         return;
@@ -635,7 +668,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
     } catch {
       setSmtpTestResult({
         success: false,
-        message: 'Network error checking SMTP connection with backend server. Check that your Live Backend API URL in Store Settings is configured.',
+        message: 'Network error communicating with the backend. If you configured a custom URL in "HOSTING & LIVE BACKEND API GATEWAY", click "Use Built-in Server" above to restore the connection.',
       });
       showToast('Connection check failed');
     } finally {
@@ -3568,44 +3601,53 @@ service cloud.firestore {
                       </div>
 
                         <div className="space-y-2 text-xs">
-                        <div className="p-3 bg-neutral-950/70 border border-neutral-800/80 rounded-xl space-y-2 text-[11px]">
-                          <p className="text-neutral-300 leading-relaxed">
-                            <strong>What to enter here:</strong> Copy the full website link from your browser's address bar (e.g. <span className="text-amber-400 font-mono">https://stylish-five.vercel.app</span>) and paste it into the box below, or click the <strong>Auto-Fill Current URL</strong> button. Then click <strong>Save &amp; Test Connection</strong>.
-                          </p>
-                          {typeof window !== 'undefined' && window.location.origin && (
-                            <div className="flex items-center gap-2 pt-1">
+                        <div className="p-3 bg-neutral-950/70 border border-neutral-800/80 rounded-xl space-y-2.5 text-[11px]">
+                          <div className="flex items-start gap-2">
+                            <span className="p-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold">DEFAULT</span>
+                            <p className="text-neutral-300 leading-relaxed">
+                              <strong>Built-in Server (Recommended):</strong> You do <strong>not</strong> need to enter an external URL if you are running in AI Studio or all-in-one on Vercel. Click <strong>Use Built-in Server</strong> to use the same-origin backend directly.
+                            </p>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2 pt-1">
+                            <button
+                              type="button"
+                              onClick={handleResetToBuiltinServer}
+                              disabled={isTestingBackendPing}
+                              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm disabled:opacity-50"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-200" />
+                              <span>Use Built-in Server (Reset / Default)</span>
+                            </button>
+
+                            {typeof window !== 'undefined' && window.location.origin && (
                               <button
                                 type="button"
                                 onClick={() => {
                                   setBackendUrlInput(window.location.origin);
                                   showToast(`Auto-filled: ${window.location.origin}`);
                                 }}
-                                className="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-lg text-[11px] font-medium flex items-center gap-1.5 transition-all cursor-pointer"
+                                className="px-2.5 py-1.5 bg-neutral-800/80 hover:bg-neutral-700 text-neutral-300 border border-neutral-700 rounded-lg text-[11px] font-medium flex items-center gap-1.5 transition-all cursor-pointer"
                               >
-                                <Globe className="w-3 h-3 text-amber-400" />
-                                <span>Auto-Fill Current URL ({window.location.origin})</span>
+                                <Globe className="w-3 h-3 text-neutral-400" />
+                                <span>Fill Current Origin ({window.location.hostname})</span>
                               </button>
-                            </div>
-                          )}
+                            )}
+                          </div>
                         </div>
 
                         <div className="space-y-1.5 pt-1">
                           <label className="block text-neutral-300 font-medium text-xs flex items-center justify-between">
                             <span className="flex items-center gap-1.5">
                               <Globe className="w-3.5 h-3.5 text-amber-400" />
-                              Live Backend API URL (Vercel URL)
+                              Custom Backend API URL (Optional)
                             </span>
                             {backendUrlInput && (
                               <button
                                 type="button"
-                                onClick={() => {
-                                  setBackendUrlInput('');
-                                  localStorage.removeItem('moon_backend_url');
-                                  showToast('Reset to default same-origin URL');
-                                }}
-                                className="text-[10px] text-neutral-400 hover:text-white underline cursor-pointer"
+                                onClick={handleResetToBuiltinServer}
+                                className="text-[10px] text-amber-400 hover:text-amber-300 underline cursor-pointer"
                               >
-                                Clear / Use Default
+                                Clear / Use Built-in Server
                               </button>
                             )}
                           </label>
@@ -3615,8 +3657,8 @@ service cloud.firestore {
                               type="url"
                               value={backendUrlInput}
                               onChange={(e) => setBackendUrlInput(e.target.value)}
-                              placeholder={typeof window !== 'undefined' ? `${window.location.origin}` : 'https://your-domain.vercel.app'}
-                              className="flex-1 px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-xl text-white text-xs font-mono focus:outline-none focus:border-white"
+                              placeholder="Leave blank for built-in server (e.g. /api/...)"
+                              className="flex-1 px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-xl text-white text-xs font-mono focus:outline-none focus:border-white placeholder:text-neutral-600"
                             />
                             <button
                               type="button"

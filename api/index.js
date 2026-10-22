@@ -35118,7 +35118,7 @@ import path3 from "path";
 import { fileURLToPath } from "url";
 var __filename = fileURLToPath(import.meta.url);
 var __dirname = path3.dirname(__filename);
-var REPO_DATA_DIR = path3.join(__dirname, "..", "data_store");
+var REPO_DATA_DIR = fs4.existsSync(path3.join(process.cwd(), "data_store")) ? path3.join(process.cwd(), "data_store") : path3.join(__dirname, "..", "data_store");
 var DATA_DIR = process.env.VERCEL ? path3.join("/tmp", "data_store") : REPO_DATA_DIR;
 var SENT_EMAILS_FILE = path3.join(DATA_DIR, "sent_emails.json");
 function readSentEmails() {
@@ -35730,10 +35730,13 @@ var __filename2 = fileURLToPath2(import.meta.url);
 var __dirname2 = path4.dirname(__filename2);
 var isProduction = process.env.NODE_ENV === "production";
 var PORT = Number(process.env.PORT) || 3e3;
-var REPO_DATA_DIR2 = path4.join(__dirname2, "data_store");
+var REPO_DATA_DIR2 = fs5.existsSync(path4.join(process.cwd(), "data_store")) ? path4.join(process.cwd(), "data_store") : path4.join(__dirname2, "data_store");
 var DATA_DIR2 = process.env.VERCEL ? path4.join("/tmp", "data_store") : REPO_DATA_DIR2;
-if (!fs5.existsSync(DATA_DIR2)) {
-  fs5.mkdirSync(DATA_DIR2, { recursive: true });
+try {
+  if (!fs5.existsSync(DATA_DIR2)) {
+    fs5.mkdirSync(DATA_DIR2, { recursive: true });
+  }
+} catch {
 }
 if (process.env.VERCEL && fs5.existsSync(REPO_DATA_DIR2)) {
   try {
@@ -36511,10 +36514,13 @@ async function startServer() {
     console.log(`Moon Server running at http://0.0.0.0:${PORT}`);
   });
 }
-if (!process.env.VERCEL) {
+var isMainScript = Boolean(
+  process.argv[1] && (process.argv[1].endsWith("server.ts") || process.argv[1].endsWith("server.js") || process.argv[1].endsWith("start.sh"))
+);
+if (!process.env.VERCEL && isMainScript) {
   startServer();
 }
-var server_default = app;
+var server_default = (req, res) => app(req, res);
 export {
   app,
   server_default as default
