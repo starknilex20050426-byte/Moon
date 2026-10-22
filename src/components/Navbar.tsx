@@ -548,32 +548,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div>
                 <button
                   onClick={() => {
                     setIsMobileMenuOpen(false);
                     onOpenAuth();
                   }}
-                  className="w-full py-2.5 px-4 bg-white border border-neutral-300 text-neutral-900 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
+                  className="w-full py-2.5 px-4 bg-white border border-neutral-300 text-neutral-900 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer shadow-2xs hover:bg-neutral-50 transition-colors"
                 >
                   <UserIcon className="w-4 h-4" />
                   <span>Sign In / Create Account</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    onOpenAdmin();
-                  }}
-                  className="w-full py-2.5 px-4 bg-neutral-900 text-amber-300 border border-amber-500/30 rounded-xl text-xs font-bold flex items-center justify-between cursor-pointer shadow-2xs hover:bg-neutral-800 transition-colors"
-                >
-                  <div className="flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4 text-amber-400" />
-                    <span>Store Admin Panel</span>
-                  </div>
-                  <span className="text-[10px] px-2 py-0.5 bg-amber-400/20 text-amber-200 rounded font-mono font-normal">
-                    Owner & Staff
-                  </span>
                 </button>
               </div>
             )}

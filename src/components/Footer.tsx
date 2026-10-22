@@ -12,7 +12,7 @@ interface FooterProps {
 export const Footer: React.FC<FooterProps> = ({ onOpenOrders, onOpenProfile, onOpenAdmin }) => {
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
-  const { canSeeAdminPortal } = useAuth();
+  const { canSeeAdminPortal, isOwner } = useAuth();
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,17 +76,19 @@ export const Footer: React.FC<FooterProps> = ({ onOpenOrders, onOpenProfile, onO
                     Order Tracking & Buyings
                   </button>
                 </li>
-                <li>
-                  <button
-                    onClick={onOpenAdmin}
-                    className="text-amber-400 hover:text-amber-300 font-medium transition-colors text-left cursor-pointer flex items-center gap-1.5"
-                  >
-                    <span>Store Admin Portal</span>
-                    <span className="text-[9px] px-1.5 py-0.2 bg-amber-400/20 text-amber-300 rounded font-mono">
-                      {canSeeAdminPortal ? 'Staff' : 'Owner / Passkey'}
-                    </span>
-                  </button>
-                </li>
+                {canSeeAdminPortal && (
+                  <li>
+                    <button
+                      onClick={onOpenAdmin}
+                      className="text-amber-400 hover:text-amber-300 font-medium transition-colors text-left cursor-pointer flex items-center gap-1.5"
+                    >
+                      <span>Store Admin Portal</span>
+                      <span className="text-[9px] px-1.5 py-0.2 bg-amber-400/20 text-amber-300 rounded font-mono">
+                        {isOwner ? 'Owner' : 'Staff'}
+                      </span>
+                    </button>
+                  </li>
+                )}
                 <li><span className="hover:text-white transition-colors cursor-pointer">Sizing Guide</span></li>
                 <li><span className="hover:text-white transition-colors cursor-pointer">Complimentary Returns</span></li>
                 <li><span className="hover:text-white transition-colors cursor-pointer">Textile Care</span></li>
