@@ -482,6 +482,17 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
       return;
     }
 
+    // If user enters current domain or hostname, automatically use built-in same-origin server
+    if (
+      typeof window !== 'undefined' &&
+      (trimmed === window.location.origin ||
+        trimmed.replace(/\/$/, '') === window.location.origin.replace(/\/$/, '') ||
+        (window.location.hostname && trimmed.includes(window.location.hostname)))
+    ) {
+      await handleResetToBuiltinServer();
+      return;
+    }
+
     if (trimmed.startsWith('prj_')) {
       setBackendPingResult({
         success: false,
@@ -3642,25 +3653,14 @@ service cloud.firestore {
                               type="button"
                               onClick={handleResetToBuiltinServer}
                               disabled={isTestingBackendPing}
-                              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm disabled:opacity-50"
+                              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-sm disabled:opacity-50"
                             >
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-200" />
+                              <CheckCircle2 className="w-4 h-4 text-emerald-200" />
                               <span>Use Built-in Server (Reset / Default)</span>
                             </button>
-
-                            {typeof window !== 'undefined' && window.location.origin && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setBackendUrlInput(window.location.origin);
-                                  showToast(`Auto-filled: ${window.location.origin}`);
-                                }}
-                                className="px-2.5 py-1.5 bg-neutral-800/80 hover:bg-neutral-700 text-neutral-300 border border-neutral-700 rounded-lg text-[11px] font-medium flex items-center gap-1.5 transition-all cursor-pointer"
-                              >
-                                <Globe className="w-3 h-3 text-neutral-400" />
-                                <span>Fill Current Origin ({window.location.hostname})</span>
-                              </button>
-                            )}
+                            <span className="text-[10px] text-emerald-400 font-mono">
+                              ✓ Recommended for Vercel &amp; AI Studio
+                            </span>
                           </div>
                         </div>
 

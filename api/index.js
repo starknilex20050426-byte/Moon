@@ -35824,29 +35824,33 @@ var DEFAULT_SETTINGS = {
     badge: "Drop 01"
   }
 };
-if (!fs5.existsSync(USERS_FILE)) {
-  const initialUsers = [
-    {
-      uid: "owner-primary-uid",
-      email: OWNER_EMAIL,
-      displayName: "Store Owner",
-      phoneNumber: "+94 77 123 4567",
-      role: "owner",
-      accountStatus: "active",
-      district: "Colombo",
-      createdAt: "2026-01-01T00:00:00.000Z"
-    }
-  ];
-  fs5.writeFileSync(USERS_FILE, JSON.stringify(initialUsers, null, 2), "utf8");
-}
-if (!fs5.existsSync(ORDERS_FILE)) {
-  fs5.writeFileSync(ORDERS_FILE, JSON.stringify([], null, 2), "utf8");
-}
-if (!fs5.existsSync(SETTINGS_FILE)) {
-  fs5.writeFileSync(SETTINGS_FILE, JSON.stringify(DEFAULT_SETTINGS, null, 2), "utf8");
-}
-if (!fs5.existsSync(CATEGORIES_FILE)) {
-  fs5.writeFileSync(CATEGORIES_FILE, JSON.stringify(DEFAULT_CATEGORIES, null, 2), "utf8");
+try {
+  if (!fs5.existsSync(USERS_FILE)) {
+    const initialUsers = [
+      {
+        uid: "owner-primary-uid",
+        email: OWNER_EMAIL,
+        displayName: "Store Owner",
+        phoneNumber: "+94 77 123 4567",
+        role: "owner",
+        accountStatus: "active",
+        district: "Colombo",
+        createdAt: "2026-01-01T00:00:00.000Z"
+      }
+    ];
+    fs5.writeFileSync(USERS_FILE, JSON.stringify(initialUsers, null, 2), "utf8");
+  }
+  if (!fs5.existsSync(ORDERS_FILE)) {
+    fs5.writeFileSync(ORDERS_FILE, JSON.stringify([], null, 2), "utf8");
+  }
+  if (!fs5.existsSync(SETTINGS_FILE)) {
+    fs5.writeFileSync(SETTINGS_FILE, JSON.stringify(DEFAULT_SETTINGS, null, 2), "utf8");
+  }
+  if (!fs5.existsSync(CATEGORIES_FILE)) {
+    fs5.writeFileSync(CATEGORIES_FILE, JSON.stringify(DEFAULT_CATEGORIES, null, 2), "utf8");
+  }
+} catch (seedErr) {
+  console.warn("Initial file seed skipped (read-only environment):", seedErr);
 }
 function readCategories() {
   try {
@@ -35957,10 +35961,7 @@ app.use((req, res, next) => {
 });
 app.use(import_express.default.json({ limit: "10mb" }));
 app.use((req, _res, next) => {
-  const matched = req.headers["x-matched-path"] || "";
-  if (matched.startsWith("/api")) {
-    req.url = matched;
-  } else if (req.url.startsWith("/settings") || req.url.startsWith("/users") || req.url.startsWith("/orders") || req.url.startsWith("/categories") || req.url.startsWith("/products") || req.url.startsWith("/health") || req.url.startsWith("/upload")) {
+  if (!req.url.startsWith("/api") && (req.url.startsWith("/settings") || req.url.startsWith("/users") || req.url.startsWith("/orders") || req.url.startsWith("/categories") || req.url.startsWith("/products") || req.url.startsWith("/health") || req.url.startsWith("/upload"))) {
     req.url = `/api${req.url}`;
   }
   next();
@@ -36495,6 +36496,20 @@ app.delete("/api/products/:id", (req, res) => {
 });
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", serverTime: (/* @__PURE__ */ new Date()).toISOString() });
+});
+app.all("/api/*", (_req, res) => {
+  if (!res.headersSent) {
+    res.status(404).json({ success: false, message: "API endpoint not found" });
+  }
+});
+app.use((err, _req, res, _next) => {
+  console.error("Express server error:", err);
+  if (!res.headersSent) {
+    res.status(500).json({
+      success: false,
+      message: err?.message || "Internal Server Error"
+    });
+  }
 });
 async function startServer() {
   if (!isProduction) {
