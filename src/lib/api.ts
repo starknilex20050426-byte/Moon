@@ -10,7 +10,16 @@ export function getApiUrl(path: string): string {
   if (typeof window !== 'undefined') {
     const storedUrl = localStorage.getItem('moon_backend_url');
     if (storedUrl && storedUrl.trim()) {
-      return `${storedUrl.trim().replace(/\/$/, '')}${path.startsWith('/') ? path : `/${path}`}`;
+      const trimmed = storedUrl.trim();
+      // Purge non-HTTP strings (e.g. Vercel project IDs prj_...)
+      if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+        localStorage.removeItem('moon_backend_url');
+      } else if (trimmed === window.location.origin || trimmed === window.location.origin.replace(/\/$/, '')) {
+        // If pointing to current origin, use relative paths to avoid unnecessary CORS
+        return path;
+      } else {
+        return `${trimmed.replace(/\/$/, '')}${path.startsWith('/') ? path : `/${path}`}`;
+      }
     }
   }
 

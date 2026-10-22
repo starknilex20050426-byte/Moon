@@ -364,7 +364,12 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
   // Cloud Backend URL & Hosting Architecture state
   const [backendUrlInput, setBackendUrlInput] = useState(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('moon_backend_url') || '';
+      const stored = localStorage.getItem('moon_backend_url') || '';
+      if (stored.startsWith('prj_') || (stored && !stored.startsWith('http://') && !stored.startsWith('https://'))) {
+        localStorage.removeItem('moon_backend_url');
+        return '';
+      }
+      return stored;
     }
     return '';
   });
@@ -476,25 +481,49 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
       await handleResetToBuiltinServer();
       return;
     }
+
+    if (trimmed.startsWith('prj_')) {
+      setBackendPingResult({
+        success: false,
+        message: `"${trimmed}" is a Vercel Project ID, not an API URL! You don't need any Project ID or external URL. Click "Use Built-in Server" to use your live backend.`,
+      });
+      showToast('Project ID detected! Click "Use Built-in Server" instead.');
+      return;
+    }
+
+    if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+      setBackendPingResult({
+        success: false,
+        message: 'Invalid URL. Backend URL must start with https:// or http://. Or click "Use Built-in Server" for the default.',
+      });
+      showToast('Please enter a full URL (https://...) or click "Use Built-in Server"');
+      return;
+    }
+
     setIsTestingBackendPing(true);
     setBackendPingResult(null);
     try {
       const pingUrl = `${trimmed}/api/settings`;
       const res = await fetch(pingUrl);
-      if (res.ok) {
-        localStorage.setItem('moon_backend_url', trimmed);
-        setBackendPingResult({
-          success: true,
-          message: `✓ Backend connection successful to ${trimmed}! Live API & auto-emails are verified.`,
-        });
-        showToast('✓ Backend connected & saved successfully!');
-      } else {
-        setBackendPingResult({
-          success: false,
-          message: `Backend at ${trimmed} responded with HTTP ${res.status}. If this is not the backend for MOON APPAREL, click "Use Built-in Server".`,
-        });
-        showToast(`Backend responded with HTTP ${res.status}`);
+      const contentType = res.headers.get('content-type') || '';
+      if (res.ok && contentType.includes('application/json')) {
+        const data = await res.json();
+        if (data && data.success) {
+          localStorage.setItem('moon_backend_url', trimmed);
+          setBackendPingResult({
+            success: true,
+            message: `✓ Backend connection successful to ${trimmed}! Live API & auto-emails are verified.`,
+          });
+          showToast('✓ Backend connected & saved successfully!');
+          return;
+        }
       }
+
+      setBackendPingResult({
+        success: false,
+        message: `Backend at ${trimmed} did not return the MOON APPAREL API (HTTP ${res.status}, ${contentType || 'non-JSON'}). Click "Use Built-in Server" to use the default backend.`,
+      });
+      showToast(`Backend responded with HTTP ${res.status}`);
     } catch {
       setBackendPingResult({
         success: false,
@@ -3679,6 +3708,30 @@ service cloud.firestore {
                               )}
                             </button>
                           </div>
+
+                          {backendUrlInput.startsWith('prj_') && (
+                            <div className="p-3 bg-rose-950/40 border border-rose-500/50 rounded-xl space-y-1.5 text-[11px]">
+                              <div className="flex items-center gap-2 text-rose-300 font-bold">
+                                <AlertCircle className="w-4 h-4 shrink-0" />
+                                <span>Vercel Project ID Detected ({backendUrlInput})</span>
+                              </div>
+                              <p className="text-rose-200/90 leading-relaxed text-[11px]">
+                                You entered a Vercel Project ID (starting with <code>prj_</code>) instead of an API URL. On Vercel, MOON APPAREL already has the backend server built-in. Putting a Project ID here causes all API calls (including email tests) to return HTTP 405 error.
+                              </p>
+                              <button
+                                type="button"
+                                onClick={handleResetToBuiltinServer}
+                                className="mt-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-200" />
+                                <span>Click here to Fix: Clear &amp; Use Built-in Server</span>
+                              </button>
+                            </div>
+                          )}
+
+                          <p className="text-[10px] text-neutral-500">
+                            ℹ️ Note: Leave this empty if you are using AI Studio or Vercel. Both environments have the built-in server running on the same domain. Do not enter a Project ID or API key.
+                          </p>
 
                           {backendPingResult && (
                             <div className={`mt-2 p-2.5 rounded-lg border text-[11px] flex items-center gap-2 font-mono ${
