@@ -36541,10 +36541,7 @@ async function startServer() {
     console.log(`Moon Server running at http://0.0.0.0:${PORT}`);
   });
 }
-var isMainScript = Boolean(
-  process.argv[1] && (process.argv[1].endsWith("server.ts") || process.argv[1].endsWith("server.js") || process.argv[1].endsWith("start.sh"))
-);
-if (!process.env.VERCEL && isMainScript) {
+if (!process.env.VERCEL) {
   startServer();
 }
 var server_default = app;

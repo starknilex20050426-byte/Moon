@@ -984,14 +984,9 @@ async function startServer() {
   });
 }
 
-// Only launch standalone web server when running directly (e.g. tsx server.ts or node server.js),
+// Only launch standalone web server when running directly (local dev / container),
 // and NEVER inside Vercel serverless function invocations.
-const isMainScript = Boolean(
-  process.argv[1] &&
-  (process.argv[1].endsWith('server.ts') || process.argv[1].endsWith('server.js') || process.argv[1].endsWith('start.sh'))
-);
-
-if (!process.env.VERCEL && isMainScript) {
+if (!process.env.VERCEL) {
   startServer();
 }
 
