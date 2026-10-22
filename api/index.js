@@ -35961,7 +35961,19 @@ app.use((req, res, next) => {
 });
 app.use(import_express.default.json({ limit: "10mb" }));
 app.use((req, _res, next) => {
-  if (!req.url.startsWith("/api") && (req.url.startsWith("/settings") || req.url.startsWith("/users") || req.url.startsWith("/orders") || req.url.startsWith("/categories") || req.url.startsWith("/products") || req.url.startsWith("/health") || req.url.startsWith("/upload"))) {
+  if (req.url === "/api/index.js" || req.url.startsWith("/api/index.js")) {
+    const originalUrl = req.headers["x-forwarded-url"] || req.headers["x-original-url"] || "";
+    if (originalUrl) {
+      req.url = originalUrl;
+    } else {
+      const matches = req.headers["x-now-route-matches"] || "";
+      const match = matches.match(/1=([^&]+)/);
+      if (match && match[1]) {
+        req.url = `/api/${decodeURIComponent(match[1])}`;
+      }
+    }
+  }
+  if (!req.url.startsWith("/api") && (req.url.startsWith("/settings") || req.url.startsWith("/users") || req.url.startsWith("/orders") || req.url.startsWith("/categories") || req.url.startsWith("/products") || req.url.startsWith("/health") || req.url.startsWith("/upload") || req.url.startsWith("/emails"))) {
     req.url = `/api${req.url}`;
   }
   next();
@@ -36535,7 +36547,7 @@ var isMainScript = Boolean(
 if (!process.env.VERCEL && isMainScript) {
   startServer();
 }
-var server_default = (req, res) => app(req, res);
+var server_default = app;
 export {
   app,
   server_default as default

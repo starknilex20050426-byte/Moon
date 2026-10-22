@@ -276,6 +276,23 @@ export const app = express();
 
   // Normalize API route paths (supports both /api/xyz and /xyz when rewritten)
   app.use((req, _res, next) => {
+    // If Vercel passed /api/index.js as req.url, recover original path
+    if (req.url === '/api/index.js' || req.url.startsWith('/api/index.js')) {
+      const originalUrl =
+        (req.headers['x-forwarded-url'] as string) ||
+        (req.headers['x-original-url'] as string) ||
+        '';
+      if (originalUrl) {
+        req.url = originalUrl;
+      } else {
+        const matches = (req.headers['x-now-route-matches'] as string) || '';
+        const match = matches.match(/1=([^&]+)/);
+        if (match && match[1]) {
+          req.url = `/api/${decodeURIComponent(match[1])}`;
+        }
+      }
+    }
+
     // If request URL lacks /api prefix, prepend it
     if (
       !req.url.startsWith('/api') &&
@@ -286,7 +303,8 @@ export const app = express();
         req.url.startsWith('/categories') ||
         req.url.startsWith('/products') ||
         req.url.startsWith('/health') ||
-        req.url.startsWith('/upload')
+        req.url.startsWith('/upload') ||
+        req.url.startsWith('/emails')
       )
     ) {
       req.url = `/api${req.url}`;
@@ -977,4 +995,4 @@ if (!process.env.VERCEL && isMainScript) {
   startServer();
 }
 
-export default (req: any, res: any) => app(req, res);
+export default app;

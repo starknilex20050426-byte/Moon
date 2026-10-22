@@ -458,16 +458,17 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
         });
         showToast('✓ Connected to built-in backend server!');
       } else {
+        const errorText = await res.text().catch(() => '');
         setBackendPingResult({
           success: false,
-          message: `Built-in server returned HTTP ${res.status}.`,
+          message: `Built-in server returned HTTP ${res.status}${errorText ? ` (${errorText.slice(0, 90).replace(/\n/g, ' ')})` : ''}.`,
         });
         showToast(`Server returned HTTP ${res.status}`);
       }
-    } catch {
+    } catch (e: any) {
       setBackendPingResult({
         success: false,
-        message: 'Could not connect to built-in server. Please refresh your browser.',
+        message: `Could not connect to built-in server: ${e?.message || 'Network error'}.`,
       });
       showToast('Connection check failed');
     } finally {
@@ -678,11 +679,14 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
           const errData = await res.json();
           if (errData.message) errMessage = errData.message;
         } catch {
-          // not JSON
+          const rawText = await res.text().catch(() => '');
+          if (rawText) {
+            errMessage = `HTTP ${res.status}: ${rawText.slice(0, 90).replace(/\n/g, ' ')}`;
+          }
         }
         setSmtpTestResult({
           success: false,
-          message: `Backend API responded with ${errMessage}. If you set a custom URL in "HOSTING & LIVE BACKEND API GATEWAY", click "Use Built-in Server" in Store Settings to restore the default server.`,
+          message: `Backend API responded with ${errMessage}.`,
         });
         showToast(`SMTP check failed (${res.status})`);
         return;
