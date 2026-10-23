@@ -289,29 +289,15 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         // 2. Also record in Firebase Firestore if configured/available
         try {
           const orderRef = doc(db, 'orders', newOrder.orderId);
+          const cleanOrder = JSON.parse(JSON.stringify(newOrder));
           await setDoc(orderRef, {
-            ...newOrder,
-            userEmail: user?.email || shippingData.email,
+            ...cleanOrder,
+            userEmail: user?.email || shippingData.email || 'customer@moon-clothing.com',
             createdAt: serverTimestamp(),
           });
-          if (user?.uid) {
-            await updateShippingProfile({
-              defaultDistrict: shippingData.district,
-              defaultAddress: shippingData.addressLine,
-              defaultCity: shippingData.city,
-              phoneNumber: shippingData.phone,
-            });
-            const storageKey = `moon_orders_${user.uid}`;
-            const prev = JSON.parse(localStorage.getItem(storageKey) || '[]');
-            localStorage.setItem(storageKey, JSON.stringify([newOrder, ...prev]));
-          }
+          console.log('✓ Order logged to Firebase Firestore:', newOrder.orderId);
         } catch (fbErr) {
-          console.warn('Firebase store sync note:', fbErr);
-          if (user?.uid) {
-            const storageKey = `moon_orders_${user.uid}`;
-            const prev = JSON.parse(localStorage.getItem(storageKey) || '[]');
-            localStorage.setItem(storageKey, JSON.stringify([newOrder, ...prev]));
-          }
+          console.warn('Firebase Firestore store sync notice (check Security Rules in Firebase Console):', fbErr);
         }
 
         // 3. Keep local fallback store updated for instant offline access

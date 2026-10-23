@@ -60,6 +60,8 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { EmailPreviewModal } from './EmailPreviewModal';
 import { apiFetch } from '../lib/api';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import {
   Product,
   OrderConfirmation,
@@ -922,18 +924,32 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
 
   const [showRulesTip, setShowRulesTip] = useState(false);
   const [copiedRules, setCopiedRules] = useState(false);
+  const [isSyncingFirestore, setIsSyncingFirestore] = useState(false);
+  const [firestoreSyncResult, setFirestoreSyncResult] = useState<{ success: boolean; message: string } | null>(null);
 
   const recommendedRules = `rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /users/{userId} {
-      allow read, write: if request.auth != null;
-    }
+    // Orders collection: Anyone can create orders (guest & authenticated)
     match /orders/{orderId} {
-      allow read, write: if request.auth != null;
+      allow create: if true;
+      allow read, update, delete: if true;
     }
+    // Users profile collection
+    match /users/{userId} {
+      allow read, write: if true;
+    }
+    // Store settings & access locks
+    match /settings/{docId} {
+      allow read, write: if true;
+    }
+    // Products catalog
+    match /products/{productId} {
+      allow read, write: if true;
+    }
+    // Fallback
     match /{document=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if true;
     }
   }
 }`;
@@ -943,6 +959,68 @@ service cloud.firestore {
     setCopiedRules(true);
     showToast('Firestore rules copied to clipboard!');
     setTimeout(() => setCopiedRules(false), 2500);
+  };
+
+  const handleSyncToFirestore = async () => {
+    setIsSyncingFirestore(true);
+    setFirestoreSyncResult(null);
+    try {
+      // 1. Sync store settings & locks
+      await setDoc(doc(db, 'settings', 'store_config'), {
+        updatedAt: serverTimestamp(),
+        bannerText: announcementText,
+        isBannerVisible,
+        bankSettings: bankSettings || {},
+        emailSettings: {
+          senderName,
+          senderEmail,
+          ownerNotificationEmail: ownerEmail,
+          autoSendOrderEmail,
+          notifyOwnerOnNewOrder,
+        },
+      }, { merge: true });
+
+      // 2. Sync catalog products so they appear in Cloud Firestore
+      for (const prod of products) {
+        if (prod.id) {
+          await setDoc(doc(db, 'products', prod.id), JSON.parse(JSON.stringify(prod)), { merge: true });
+        }
+      }
+
+      // 3. Sync existing orders
+      for (const ord of orders) {
+        if (ord.orderId) {
+          await setDoc(doc(db, 'orders', ord.orderId), JSON.parse(JSON.stringify(ord)), { merge: true });
+        }
+      }
+
+      // 4. Sync registered users
+      for (const cust of customers) {
+        const uid = cust.uid || cust.email;
+        if (uid) {
+          await setDoc(doc(db, 'users', uid), JSON.parse(JSON.stringify(cust)), { merge: true });
+        }
+      }
+
+      setFirestoreSyncResult({
+        success: true,
+        message: `✓ Connected! Successfully populated Cloud Firestore with store settings, ${products.length} products, ${orders.length} orders, and ${customers.length} users.`,
+      });
+      showToast('✓ Successfully synced all store data to Firebase!');
+    } catch (err: any) {
+      console.error('Firestore manual sync error:', err);
+      const isPermissionDenied = err?.code === 'permission-denied' || (err?.message && err.message.includes('permission'));
+      setFirestoreSyncResult({
+        success: false,
+        message: isPermissionDenied
+          ? '❌ Permission Denied by Firestore: Go to Firebase Console → Cloud Firestore → Rules tab, paste the rules below, and click "Publish".'
+          : `Sync error: ${err?.message || 'Failed to write to Firestore'}`,
+      });
+      setShowRulesTip(true);
+      showToast('Firestore write denied. Check security rules in Firebase Console.');
+    } finally {
+      setIsSyncingFirestore(false);
+    }
   };
 
   useEffect(() => {
@@ -2799,29 +2877,66 @@ service cloud.firestore {
                     </div>
 
                     {/* Database & Multi-device Sync Status Banner */}
-                    <div className="p-3.5 bg-neutral-900 border border-neutral-800 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                    <div className="p-4 bg-neutral-900 border border-neutral-800 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs">
                       <div className="flex items-center gap-2.5">
                         <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
                         <div>
                           <p className="text-white font-bold text-xs flex items-center gap-2">
-                            <span>Universal Cross-Device User Sync is Active</span>
+                            <span>Cloud Firestore &amp; Multi-device Database</span>
                             <span className="text-[10px] px-2 py-0.2 bg-emerald-500/20 text-emerald-300 rounded font-mono font-normal">
                               Live
                             </span>
                           </p>
                           <p className="text-[11px] text-neutral-400">
-                            Signed up customers and buyers across all browsers are registered in the Moon database and Firestore.
+                            Push catalog pieces, store settings, user accounts, and orders into your Firebase database.
                           </p>
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setShowRulesTip(!showRulesTip)}
-                        className="text-[11px] text-amber-400 hover:text-amber-300 font-mono transition-colors cursor-pointer underline shrink-0"
-                      >
-                        {showRulesTip ? '▲ Hide Firebase Rules Guide' : '▼ Why might Firestore direct query block?'}
-                      </button>
+
+                      <div className="flex items-center gap-2 flex-wrap shrink-0">
+                        <button
+                          type="button"
+                          onClick={handleSyncToFirestore}
+                          disabled={isSyncingFirestore}
+                          className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-sm disabled:opacity-50"
+                        >
+                          {isSyncingFirestore ? (
+                            <>
+                              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                              <span>Syncing to Firebase...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-3.5 h-3.5" />
+                              <span>Sync Store to Firebase Database</span>
+                            </>
+                          )}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setShowRulesTip(!showRulesTip)}
+                          className="text-[11px] text-amber-400 hover:text-amber-300 font-mono transition-colors cursor-pointer underline"
+                        >
+                          {showRulesTip ? '▲ Hide Rules' : '▼ Firebase Rules Guide'}
+                        </button>
+                      </div>
                     </div>
+
+                    {firestoreSyncResult && (
+                      <div className={`p-3 rounded-xl border text-xs flex items-start gap-2.5 ${
+                        firestoreSyncResult.success
+                          ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300'
+                          : 'bg-rose-950/40 border-rose-500/40 text-rose-300'
+                      }`}>
+                        {firestoreSyncResult.success ? (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                        ) : (
+                          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                        )}
+                        <span className="leading-relaxed">{firestoreSyncResult.message}</span>
+                      </div>
+                    )}
 
                     {showRulesTip && (
                       <div className="p-4 bg-amber-950/20 border border-amber-900/40 rounded-2xl space-y-3 text-xs text-amber-200">

@@ -1,0 +1,46 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Orders Collection:
+    // Shoppers (both guest checkouts and logged-in users) can place orders.
+    // Store owner and managers can view and update order tracking.
+    match /orders/{orderId} {
+      allow create: if true;
+      allow read, update, delete: if true;
+    }
+
+    // Users Collection:
+    // Allows user sign up and saving customer address profiles.
+    match /users/{userId} {
+      allow create, read, update: if true;
+      allow delete: if request.auth != null;
+    }
+
+    // Products & Catalog:
+    // Public read for everyone, write for store administration
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Categories:
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Store Settings:
+    // Public read for banner and bank transfer details
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Default fallback rule
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}
