@@ -549,10 +549,27 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
     }
   };
 
-  // Load server settings on mount/open
+  // Load server settings on mount/open with cache-busting and local storage fallback
   useEffect(() => {
     if (!isOpen) return;
-    apiFetch('/api/settings')
+
+    try {
+      const localPass = localStorage.getItem('moon_smtp_pass');
+      const localUser = localStorage.getItem('moon_smtp_user');
+      if (localPass) {
+        setSmtpConfig((prev) => ({
+          ...prev,
+          pass: localPass,
+          ...(localUser ? { user: localUser } : {}),
+        }));
+      }
+    } catch {
+      // ignore
+    }
+
+    apiFetch(`/api/settings?_t=${Date.now()}`, {
+      headers: { 'Cache-Control': 'no-cache, no-store' },
+    })
       .then((r) => r.json())
       .then((data) => {
         if (data.success && data.settings?.emailSettings) {
@@ -563,13 +580,23 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
           if (em.senderEmail) setSenderEmail(em.senderEmail);
           if (em.ownerNotificationEmail) setOwnerEmail(em.ownerNotificationEmail);
           if (em.smtpConfig) {
+            let passToUse = (em.smtpConfig.pass || '').trim();
+            try {
+              const localPass = localStorage.getItem('moon_smtp_pass');
+              if (localPass && (!passToUse || passToUse === 'mlxncynbaniipbl')) {
+                passToUse = localPass;
+              }
+            } catch {
+              // ignore
+            }
+
             setSmtpConfig({
               enabled: em.smtpConfig.enabled !== false,
               host: em.smtpConfig.host || 'smtp.gmail.com',
               port: Number(em.smtpConfig.port) || 465,
               secure: typeof em.smtpConfig.secure === 'boolean' ? em.smtpConfig.secure : true,
               user: em.smtpConfig.user || '',
-              pass: em.smtpConfig.pass || '',
+              pass: passToUse,
             });
           }
         }
@@ -608,13 +635,24 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
     if (e) e.preventDefault();
     setIsSavingEmailSettings(true);
     try {
+      const cleanUser = (smtpConfig.user || '').trim();
+      const cleanPass = (smtpConfig.pass || '').trim().replace(/\s+/g, '');
+
+      // Resilient local persistence so page refresh immediately retains new password
+      try {
+        if (cleanPass) localStorage.setItem('moon_smtp_pass', cleanPass);
+        if (cleanUser) localStorage.setItem('moon_smtp_user', cleanUser);
+      } catch {
+        // ignore
+      }
+
       const cleanedConfig = {
         ...smtpConfig,
-        user: (smtpConfig.user || '').trim(),
-        pass: (smtpConfig.pass || '').trim().replace(/\s+/g, ''),
+        user: cleanUser,
+        pass: cleanPass,
         host: (smtpConfig.host || 'smtp.gmail.com').trim(),
         port: Number(smtpConfig.port) || 465,
-        enabled: Boolean(smtpConfig.user && smtpConfig.pass),
+        enabled: Boolean(cleanUser && cleanPass),
       };
 
       const res = await apiFetch('/api/settings', {
@@ -633,9 +671,11 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
       });
       const data = await res.json();
       if (data.success) {
-        showToast('✓ Auto-email settings saved successfully!');
+        showToast('✓ Google App Password & email settings saved successfully!');
         if (data.settings?.emailSettings?.smtpConfig) {
           setSmtpConfig(data.settings.emailSettings.smtpConfig);
+        } else {
+          setSmtpConfig(cleanedConfig);
         }
       } else {
         showToast(data.message || 'Failed to update email settings');

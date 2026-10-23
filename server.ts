@@ -108,7 +108,7 @@ const DEFAULT_SETTINGS = {
       port: 465,
       secure: true,
       user: 'lerninganimation@gmail.com',
-      pass: 'mlxncynbaniipbl',
+      pass: 'cqfevffahhjjgydy',
     },
   },
   heroSettings: {
@@ -228,6 +228,14 @@ function readSettings(): any {
 function writeSettings(settings: any) {
   try {
     fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2), 'utf8');
+    const repoFile = path.join(REPO_DATA_DIR, 'settings.json');
+    if (repoFile !== SETTINGS_FILE && fs.existsSync(REPO_DATA_DIR)) {
+      try {
+        fs.writeFileSync(repoFile, JSON.stringify(settings, null, 2), 'utf8');
+      } catch (repoErr) {
+        // Safe to ignore in read-only deployments
+      }
+    }
   } catch (err) {
     console.error('Failed to write settings file:', err);
   }
@@ -724,6 +732,9 @@ export const app = express();
 
   // Store Settings (Banner display/removal, banner text, bank details, auto email settings)
   app.get('/api/settings', (_req, res) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
     const settings = readSettings();
     res.json({ success: true, settings });
   });
