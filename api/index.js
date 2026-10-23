@@ -35204,7 +35204,7 @@ function generateOrderEmailHtml(order, settings, cidImageMap) {
       </tr>
     `;
   }).join("");
-  const supportContact = settings?.emailSettings?.smtpConfig?.user || settings?.emailSettings?.ownerNotificationEmail || settings?.emailSettings?.senderEmail || "concierge@moon-clothing.com";
+  const supportContact = settings?.emailSettings?.smtpConfig?.user || settings?.emailSettings?.ownerNotificationEmail || settings?.emailSettings?.senderEmail || "lerninganimation@gmail.com";
   const phoneContact = settings?.storePhone || "+94 77 123 4567";
   return `
 <!DOCTYPE html>
@@ -35215,11 +35215,6 @@ function generateOrderEmailHtml(order, settings, cidImageMap) {
   <title>Order Confirmation - ${order.orderId}</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #f7f5f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1f1d1a; -webkit-font-smoothing: antialiased;">
-
-  <!-- Preheader text -->
-  <div style="display: none; max-height: 0px; overflow: hidden; mso-hide: all; font-size: 1px; line-height: 1px; max-width: 0px; opacity: 0;">
-    Thank you for your order ${order.orderId}. Your garments have been registered for courier dispatch.
-  </div>
 
   <!-- Outer wrapper -->
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f7f5f0; width: 100%; padding: 32px 12px;">
@@ -35403,6 +35398,9 @@ function generateOrderEmailHtml(order, settings, cidImageMap) {
                 MOON APPAREL
               </div>
               <div>Colombo 07, Sri Lanka</div>
+              <div style="margin-top: 6px;">
+                <a href="https://moon-apparel.vercel.app" style="color: #c4b59d; text-decoration: underline;">moon-apparel.vercel.app</a>
+              </div>
               <div style="margin-top: 6px; color: #666666;">
                 This is an automated purchase receipt for your records.
               </div>
@@ -35421,11 +35419,13 @@ function generateOrderEmailHtml(order, settings, cidImageMap) {
 </html>
   `.trim();
 }
-function generateOrderEmailText(order) {
+function generateOrderEmailText(order, settings) {
   const currency = order.currency || "LKR";
   const customer = order.customer || {};
   const items = Array.isArray(order.items) ? order.items : [];
   const orderDate = order.orderDate ? new Date(order.orderDate).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : (/* @__PURE__ */ new Date()).toLocaleDateString();
+  const supportContact = settings?.emailSettings?.smtpConfig?.user || settings?.emailSettings?.ownerNotificationEmail || settings?.emailSettings?.senderEmail || "lerninganimation@gmail.com";
+  const phoneContact = settings?.storePhone || "+94 77 123 4567";
   let text = `Moon Apparel - Order Confirmation
 
 `;
@@ -35438,7 +35438,7 @@ function generateOrderEmailText(order) {
   text += `Payment Method: ${order.paymentMethod === "bank_transfer" ? "Bank Transfer" : "Cash on Delivery (COD)"}
 
 `;
-  text += `Dear ${customer.fullName || "Customer"},
+  text += `Dear ${customer.fullName || "Valued Client"},
 
 `;
   text += `Thank you for your order with Moon Apparel. Your purchase has been confirmed and registered for courier dispatch.
@@ -35480,7 +35480,9 @@ SUMMARY:
   text += `Phone: ${customer.phone || "N/A"}
 
 `;
-  text += `Customer Support: support@moon-clothing.com | +94 77 123 4567
+  text += `Customer Support: ${supportContact} | ${phoneContact}
+`;
+  text += `Store Website: https://moon-apparel.vercel.app
 `;
   text += `Moon Apparel Atelier, Colombo 07, Sri Lanka
 `;
@@ -35580,82 +35582,13 @@ async function sendOrderConfirmationEmail(order, settings) {
   const senderEmail = settings?.emailSettings?.senderEmail || "lerninganimation@gmail.com";
   const ownerEmail = settings?.emailSettings?.ownerNotificationEmail || "starknilex20050426@gmail.com";
   const notifyOwner = settings?.emailSettings?.notifyOwnerOnNewOrder !== false;
-  let rawSubject = settings?.emailSettings?.emailSubjectTemplate ? settings.emailSettings.emailSubjectTemplate.replace("{orderId}", order.orderId) : `Moon Apparel Order Confirmation #${order.orderId}`;
+  let rawSubject = settings?.emailSettings?.emailSubjectTemplate ? settings.emailSettings.emailSubjectTemplate.replace("{orderId}", order.orderId) : `Your Moon Apparel order confirmation (${order.orderId})`;
   rawSubject = rawSubject.replace("\u2014", "-").trim();
   const subject = rawSubject;
-  const attachments = [];
-  const cidImageMap = {};
-  const searchDirs = [
-    PUBLIC_IMAGES_DIR,
-    path3.join(process.cwd(), "public", "images"),
-    path3.join(process.cwd(), "public"),
-    path3.join(__dirname, "..", "public", "images"),
-    path3.join(__dirname, "public", "images")
-  ];
-  const items = Array.isArray(order.items) ? order.items : [];
-  items.forEach((item, idx) => {
-    const rawImage = item.product?.image;
-    const cidName = `garment_img_${idx}@moon-apparel`;
-    if (!rawImage) {
-      return;
-    }
-    if (typeof rawImage === "string" && rawImage.startsWith("data:image/")) {
-      const match = rawImage.match(/^data:(image\/[a-zA-Z0-9+.-]+);base64,(.+)$/);
-      if (match) {
-        const mimeType = match[1];
-        const base64Data = match[2];
-        const ext = mimeType.split("/")[1] || "jpg";
-        attachments.push({
-          filename: `garment-${idx}.${ext}`,
-          content: Buffer.from(base64Data, "base64"),
-          contentType: mimeType,
-          cid: cidName,
-          contentDisposition: "inline"
-        });
-        cidImageMap[idx] = `cid:${cidName}`;
-        return;
-      }
-    }
-    if (typeof rawImage === "string") {
-      const filename = rawImage.split("/").pop()?.split("?")[0];
-      if (filename) {
-        let foundPath = null;
-        for (const dir of searchDirs) {
-          try {
-            const candidate = path3.join(dir, filename);
-            if (fs4.existsSync(candidate)) {
-              foundPath = candidate;
-              break;
-            }
-          } catch {
-          }
-        }
-        if (foundPath) {
-          try {
-            const fileBuffer = fs4.readFileSync(foundPath);
-            const ext = path3.extname(foundPath).replace(".", "").toLowerCase() || "jpg";
-            const contentType = ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
-            attachments.push({
-              filename: `garment-${idx}-${filename}`,
-              content: fileBuffer,
-              contentType,
-              cid: cidName,
-              contentDisposition: "inline"
-            });
-            cidImageMap[idx] = `cid:${cidName}`;
-            return;
-          } catch (readErr) {
-            console.warn(`Could not read local image at ${foundPath}:`, readErr);
-          }
-        }
-      }
-    }
-    cidImageMap[idx] = resolveProductImageUrl(rawImage);
-  });
-  const htmlContent = generateOrderEmailHtml(order, settings, cidImageMap);
-  const textContent = generateOrderEmailText(order);
+  const htmlContent = generateOrderEmailHtml(order, settings);
+  const textContent = generateOrderEmailText(order, settings);
   const emailId = `eml-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-  let messageId = `<${emailId}@moon-apparel.com>`;
+  let messageId = emailId;
   let sendError;
   let smtpUsed = false;
   const smtp = settings?.emailSettings?.smtpConfig;
@@ -35665,26 +35598,23 @@ async function sendOrderConfirmationEmail(order, settings) {
     const isGmail = smtp.host && smtp.host.toLowerCase().includes("gmail") || cleanUser.toLowerCase().endsWith("@gmail.com");
     try {
       const transporter = createSmtpTransporter(smtp);
-      const fromAddress = isGmail ? cleanUser : senderEmail;
+      const fromAddress = isGmail ? cleanUser : senderEmail || cleanUser;
       const cleanReplyTo = isGmail ? senderEmail && senderEmail.toLowerCase().endsWith("@gmail.com") ? senderEmail : cleanUser : senderEmail || cleanUser;
       const mailOptions = {
         from: `"${senderName}" <${fromAddress}>`,
         to: recipient,
-        replyTo: cleanReplyTo,
         subject,
         html: htmlContent,
-        text: textContent,
-        attachments: attachments.length > 0 ? attachments : void 0,
-        headers: {
-          "X-Entity-Ref-ID": order.orderId,
-          "Auto-Submitted": "auto-generated"
-        }
+        text: textContent
       };
+      if (cleanReplyTo && cleanReplyTo.toLowerCase() !== fromAddress.toLowerCase()) {
+        mailOptions.replyTo = cleanReplyTo;
+      }
       if (notifyOwner && ownerEmail && ownerEmail.toLowerCase() !== recipient.toLowerCase()) {
         mailOptions.bcc = ownerEmail;
       }
       const info = await transporter.sendMail(mailOptions);
-      messageId = info.messageId || messageId;
+      messageId = info.messageId || emailId;
       smtpUsed = true;
     } catch (err) {
       console.error("Primary SMTP dispatch error:", err);
@@ -35699,21 +35629,18 @@ async function sendOrderConfirmationEmail(order, settings) {
           const mailOptions = {
             from: `"${senderName}" <${fromAddress}>`,
             to: recipient,
-            replyTo: cleanReplyTo,
             subject,
             html: htmlContent,
-            text: textContent,
-            attachments: attachments.length > 0 ? attachments : void 0,
-            headers: {
-              "X-Entity-Ref-ID": order.orderId,
-              "Auto-Submitted": "auto-generated"
-            }
+            text: textContent
           };
+          if (cleanReplyTo && cleanReplyTo.toLowerCase() !== fromAddress.toLowerCase()) {
+            mailOptions.replyTo = cleanReplyTo;
+          }
           if (notifyOwner && ownerEmail && ownerEmail.toLowerCase() !== recipient.toLowerCase()) {
             mailOptions.bcc = ownerEmail;
           }
           const info = await altTransporter.sendMail(mailOptions);
-          messageId = info.messageId || messageId;
+          messageId = info.messageId || emailId;
           smtpUsed = true;
         } catch (altErr) {
           sendError = formatSmtpError(altErr || err);
@@ -35733,23 +35660,23 @@ async function sendOrderConfirmationEmail(order, settings) {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS
       });
-      const fromAddress = isGmail ? cleanUser : senderEmail;
+      const fromAddress = isGmail ? cleanUser : senderEmail || cleanUser;
       const cleanReplyTo = isGmail ? senderEmail && senderEmail.toLowerCase().endsWith("@gmail.com") ? senderEmail : cleanUser : senderEmail || cleanUser;
-      const info = await envTransporter.sendMail({
+      const mailOptions = {
         from: `"${senderName}" <${fromAddress}>`,
         to: recipient,
-        replyTo: cleanReplyTo,
-        bcc: notifyOwner && ownerEmail ? ownerEmail : void 0,
         subject,
         html: htmlContent,
-        text: textContent,
-        attachments: attachments.length > 0 ? attachments : void 0,
-        headers: {
-          "X-Entity-Ref-ID": order.orderId,
-          "Auto-Submitted": "auto-generated"
-        }
-      });
-      messageId = info.messageId || messageId;
+        text: textContent
+      };
+      if (cleanReplyTo && cleanReplyTo.toLowerCase() !== fromAddress.toLowerCase()) {
+        mailOptions.replyTo = cleanReplyTo;
+      }
+      if (notifyOwner && ownerEmail && ownerEmail.toLowerCase() !== recipient.toLowerCase()) {
+        mailOptions.bcc = ownerEmail;
+      }
+      const info = await envTransporter.sendMail(mailOptions);
+      messageId = info.messageId || emailId;
       smtpUsed = true;
     } catch (err) {
       console.warn("Env SMTP dispatch error:", err?.message || err);
@@ -35784,7 +35711,7 @@ async function sendOrderConfirmationEmail(order, settings) {
       html: htmlContent,
       text: textContent,
       isOwnerCopy: true,
-      messageId: `<owner-${emailId}@moon-apparel.com>`
+      messageId: `owner-${messageId}`
     });
   }
   writeSentEmails(currentRecords);
@@ -35887,7 +35814,7 @@ var DEFAULT_SETTINGS = {
     senderEmail: "lerninganimation@gmail.com",
     ownerNotificationEmail: OWNER_EMAIL,
     notifyOwnerOnNewOrder: true,
-    emailSubjectTemplate: "Moon Apparel Order Confirmation #{orderId}",
+    emailSubjectTemplate: "Your Moon Apparel order confirmation ({orderId})",
     smtpConfig: {
       enabled: true,
       host: "smtp.gmail.com",

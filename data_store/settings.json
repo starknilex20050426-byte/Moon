@@ -25,7 +25,7 @@
     "senderEmail": "lerninganimation@gmail.com",
     "ownerNotificationEmail": "starknilex20050426@gmail.com",
     "notifyOwnerOnNewOrder": true,
-    "emailSubjectTemplate": "Moon Apparel Order Confirmation #{orderId}",
+    "emailSubjectTemplate": "Your Moon Apparel order confirmation ({orderId})",
     "smtpConfig": {
       "enabled": true,
       "host": "smtp.gmail.com",

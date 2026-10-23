@@ -101,7 +101,7 @@ const DEFAULT_SETTINGS = {
     senderEmail: 'lerninganimation@gmail.com',
     ownerNotificationEmail: OWNER_EMAIL,
     notifyOwnerOnNewOrder: true,
-    emailSubjectTemplate: 'Moon Apparel Order Confirmation #{orderId}',
+    emailSubjectTemplate: 'Your Moon Apparel order confirmation ({orderId})',
     smtpConfig: {
       enabled: true,
       host: 'smtp.gmail.com',
