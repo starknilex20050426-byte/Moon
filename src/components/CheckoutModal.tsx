@@ -137,6 +137,32 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   const [confirmedOrder, setConfirmedOrder] = useState<OrderConfirmation | null>(null);
 
+  // Whenever modal opens or items change, reset to shipping step if previously on confirmed
+  React.useEffect(() => {
+    if (isOpen) {
+      if (step === 'confirmed' || confirmedOrder) {
+        setStep('shipping');
+        setConfirmedOrder(null);
+        setReceiptFile(null);
+        setTransactionRef('');
+        setProcessingStage('');
+        setUploadError('');
+      }
+    }
+  }, [isOpen]);
+
+  const handleCloseModal = () => {
+    if (step === 'confirmed' || confirmedOrder) {
+      setStep('shipping');
+      setConfirmedOrder(null);
+      setReceiptFile(null);
+      setTransactionRef('');
+      setProcessingStage('');
+      setUploadError('');
+    }
+    onClose();
+  };
+
   const config = CURRENCY_CONFIG[currency];
   const shippingFee =
     deliveryMethod === 'express'
@@ -327,7 +353,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={() => {
-            if (step !== 'processing') onClose();
+            if (step !== 'processing') handleCloseModal();
           }}
           className="fixed inset-0 bg-neutral-950/70 backdrop-blur-sm"
         />
@@ -377,7 +403,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
               {step !== 'processing' && (
                 <button
-                  onClick={onClose}
+                  onClick={handleCloseModal}
                   className="p-1.5 text-neutral-400 hover:text-neutral-900 rounded-md transition-colors cursor-pointer"
                   aria-label="Close checkout"
                 >
@@ -1216,7 +1242,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     <span>Print Order Invoice</span>
                   </button>
                   <button
-                    onClick={onClose}
+                    onClick={handleCloseModal}
                     className="w-full sm:flex-1 py-3 px-6 bg-neutral-950 hover:bg-neutral-800 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer"
                   >
                     <ShoppingBag className="w-4 h-4" />

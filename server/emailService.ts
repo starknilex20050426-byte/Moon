@@ -719,6 +719,8 @@ export async function sendOrderConfirmationEmail(order: any, settings?: any): Pr
       console.warn('Env SMTP dispatch error:', err?.message || err);
       sendError = formatSmtpError(err);
     }
+  } else {
+    sendError = 'SMTP server credentials (host, username, and 16-character Google App Password) are not configured or enabled.';
   }
 
   // Create record for sent_emails.json
@@ -728,7 +730,7 @@ export async function sendOrderConfirmationEmail(order: any, settings?: any): Pr
     recipient,
     subject,
     sentAt: new Date().toISOString(),
-    status: sendError ? 'failed' : 'delivered',
+    status: (sendError || !smtpUsed) ? 'failed' : 'delivered',
     html: htmlContent,
     text: textContent,
     isOwnerCopy: false,
@@ -740,7 +742,7 @@ export async function sendOrderConfirmationEmail(order: any, settings?: any): Pr
   currentRecords.unshift(record);
 
   // If owner notification is enabled and owner email is separate, log owner notification record as well
-  if (!sendError && notifyOwner && ownerEmail && ownerEmail.toLowerCase() !== recipient.toLowerCase()) {
+  if (!sendError && smtpUsed && notifyOwner && ownerEmail && ownerEmail.toLowerCase() !== recipient.toLowerCase()) {
     currentRecords.unshift({
       id: `eml-owner-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       orderId: order.orderId,
@@ -757,13 +759,13 @@ export async function sendOrderConfirmationEmail(order: any, settings?: any): Pr
 
   writeSentEmails(currentRecords);
 
-  if (sendError && hasSmtp) {
+  if (sendError || !smtpUsed) {
     return {
       success: false,
       messageId,
-      error: sendError,
+      error: sendError || 'SMTP server connection could not be established.',
       record,
-      smtpUsed,
+      smtpUsed: false,
     };
   }
 
@@ -771,6 +773,6 @@ export async function sendOrderConfirmationEmail(order: any, settings?: any): Pr
     success: true,
     messageId,
     record,
-    smtpUsed,
+    smtpUsed: true,
   };
 }

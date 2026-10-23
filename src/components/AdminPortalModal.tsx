@@ -762,12 +762,19 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
       }
 
       const data = await res.json();
-      setSmtpTestResult({ success: data.success, message: data.message });
-      if (data.success) {
-        showToast(data.message || `Test email dispatched to ${ownerEmail}!`);
+      if (data.success && data.smtpUsed) {
+        setSmtpTestResult({
+          success: true,
+          message: `✓ Real order confirmation email dispatched directly to ${ownerEmail} via Gmail SMTP! Check your inbox.`,
+        });
+        showToast(`✓ Real email dispatched to ${ownerEmail}!`);
         fetchEmailLogs();
       } else {
-        showToast(data.message || 'Failed to dispatch test email');
+        setSmtpTestResult({
+          success: false,
+          message: data.message || 'SMTP was not used. Please verify your Gmail address and 16-character App Password.',
+        });
+        showToast(data.message || 'Failed to dispatch email over SMTP');
       }
     } catch {
       setSmtpTestResult({

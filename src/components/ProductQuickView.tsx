@@ -34,8 +34,7 @@ export const ProductQuickView: React.FC<ProductQuickViewProps> = ({
     setAddedSuccess(true);
     setTimeout(() => {
       setAddedSuccess(false);
-      onClose();
-    }, 900);
+    }, 1800);
   };
 
   return (

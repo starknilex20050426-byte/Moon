@@ -35755,6 +35755,8 @@ async function sendOrderConfirmationEmail(order, settings) {
       console.warn("Env SMTP dispatch error:", err?.message || err);
       sendError = formatSmtpError(err);
     }
+  } else {
+    sendError = "SMTP server credentials (host, username, and 16-character Google App Password) are not configured or enabled.";
   }
   const record = {
     id: emailId,
@@ -35762,7 +35764,7 @@ async function sendOrderConfirmationEmail(order, settings) {
     recipient,
     subject,
     sentAt: (/* @__PURE__ */ new Date()).toISOString(),
-    status: sendError ? "failed" : "delivered",
+    status: sendError || !smtpUsed ? "failed" : "delivered",
     html: htmlContent,
     text: textContent,
     isOwnerCopy: false,
@@ -35771,7 +35773,7 @@ async function sendOrderConfirmationEmail(order, settings) {
   };
   const currentRecords = readSentEmails();
   currentRecords.unshift(record);
-  if (!sendError && notifyOwner && ownerEmail && ownerEmail.toLowerCase() !== recipient.toLowerCase()) {
+  if (!sendError && smtpUsed && notifyOwner && ownerEmail && ownerEmail.toLowerCase() !== recipient.toLowerCase()) {
     currentRecords.unshift({
       id: `eml-owner-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       orderId: order.orderId,
@@ -35786,20 +35788,20 @@ async function sendOrderConfirmationEmail(order, settings) {
     });
   }
   writeSentEmails(currentRecords);
-  if (sendError && hasSmtp) {
+  if (sendError || !smtpUsed) {
     return {
       success: false,
       messageId,
-      error: sendError,
+      error: sendError || "SMTP server connection could not be established.",
       record,
-      smtpUsed
+      smtpUsed: false
     };
   }
   return {
     success: true,
     messageId,
     record,
-    smtpUsed
+    smtpUsed: true
   };
 }
 
@@ -35881,18 +35883,18 @@ var DEFAULT_SETTINGS = {
   },
   emailSettings: {
     autoSendOrderEmail: true,
-    senderName: "MOON APPAREL ATELIER",
+    senderName: "Moon Apparel",
     senderEmail: "lerninganimation@gmail.com",
     ownerNotificationEmail: OWNER_EMAIL,
     notifyOwnerOnNewOrder: true,
-    emailSubjectTemplate: "Order Confirmed: #{orderId} \u2014 MOON APPAREL",
+    emailSubjectTemplate: "Moon Apparel Order Confirmation #{orderId}",
     smtpConfig: {
-      enabled: false,
-      host: "",
-      port: 587,
-      secure: false,
-      user: "",
-      pass: ""
+      enabled: true,
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true,
+      user: "lerninganimation@gmail.com",
+      pass: "mlxncynbaniipbl"
     }
   },
   heroSettings: {
@@ -35976,9 +35978,17 @@ function readSettings() {
       emailSettings: {
         ...DEFAULT_SETTINGS.emailSettings,
         ...parsed.emailSettings || {},
+        senderName: parsed.emailSettings?.senderName || DEFAULT_SETTINGS.emailSettings.senderName,
+        senderEmail: parsed.emailSettings?.senderEmail || DEFAULT_SETTINGS.emailSettings.senderEmail,
         smtpConfig: {
           ...DEFAULT_SETTINGS.emailSettings.smtpConfig,
-          ...parsed.emailSettings?.smtpConfig || {}
+          ...parsed.emailSettings?.smtpConfig || {},
+          user: parsed.emailSettings?.smtpConfig?.user && parsed.emailSettings.smtpConfig.user.trim() || DEFAULT_SETTINGS.emailSettings.smtpConfig.user,
+          pass: parsed.emailSettings?.smtpConfig?.pass && parsed.emailSettings.smtpConfig.pass.trim() || DEFAULT_SETTINGS.emailSettings.smtpConfig.pass,
+          host: parsed.emailSettings?.smtpConfig?.host && parsed.emailSettings.smtpConfig.host.trim() || DEFAULT_SETTINGS.emailSettings.smtpConfig.host,
+          port: Number(parsed.emailSettings?.smtpConfig?.port) || DEFAULT_SETTINGS.emailSettings.smtpConfig.port,
+          secure: typeof parsed.emailSettings?.smtpConfig?.secure === "boolean" ? parsed.emailSettings.smtpConfig.secure : DEFAULT_SETTINGS.emailSettings.smtpConfig.secure,
+          enabled: parsed.emailSettings?.smtpConfig?.enabled !== false
         }
       },
       heroSettings: {
@@ -36203,24 +36213,27 @@ app.post("/api/orders/:orderId/send-email", async (req, res) => {
   }
   const settings = readSettings();
   const result = await sendOrderConfirmationEmail(targetOrder, settings);
-  if (result.success) {
-    orders[orderIndex].emailStatus = result.smtpUsed ? "sent" : "outbox_logged";
+  if (result.success && result.smtpUsed) {
+    orders[orderIndex].emailStatus = "sent";
     orders[orderIndex].emailSentAt = (/* @__PURE__ */ new Date()).toISOString();
     orders[orderIndex].emailRecipient = targetOrder.customer?.email;
-    orders[orderIndex].emailSmtpUsed = Boolean(result.smtpUsed);
+    orders[orderIndex].emailSmtpUsed = true;
     orders[orderIndex].emailMessageId = result.messageId;
     writeOrders(orders);
     return res.json({
       success: true,
-      message: result.smtpUsed ? `Order confirmation email dispatched directly to ${targetOrder.customer?.email} via SMTP!` : `Order confirmation rendered & saved to Outbox Preview for ${targetOrder.customer?.email}`,
+      message: `Order confirmation email dispatched directly to ${targetOrder.customer?.email} via SMTP!`,
       order: orders[orderIndex],
       record: result.record,
-      smtpUsed: result.smtpUsed
+      smtpUsed: true
     });
   }
+  orders[orderIndex].emailStatus = "failed";
+  orders[orderIndex].emailError = result.error || "SMTP delivery failed";
+  writeOrders(orders);
   res.status(500).json({
     success: false,
-    message: result.error || "Failed to dispatch email"
+    message: result.error || "Failed to dispatch email over SMTP"
   });
 });
 app.get("/api/orders/:orderId/email-preview", (req, res) => {
@@ -36363,20 +36376,21 @@ app.post("/api/settings/test-email", async (req, res) => {
     status: "confirmed"
   };
   const result = await sendOrderConfirmationEmail(mockOrder, settings);
-  if (result.success) {
+  if (result.success && result.smtpUsed) {
     if (saveConfig || smtpConfig && smtpConfig.enabled) {
       writeSettings(settings);
     }
     return res.json({
       success: true,
-      message: result.smtpUsed ? `Real luxury order confirmation successfully emailed to ${recipient} via SMTP!` : `Test order email logged to system outbox for ${recipient}`,
+      message: `Real luxury order confirmation successfully emailed to ${recipient} via SMTP!`,
       record: result.record,
       smtpUsed: result.smtpUsed
     });
   }
   res.status(400).json({
     success: false,
-    message: result.error || "Failed to dispatch email"
+    message: result.error || "Failed to dispatch email over SMTP. Please verify your Gmail App Password.",
+    smtpUsed: false
   });
 });
 app.patch("/api/orders/:orderId", (req, res) => {
